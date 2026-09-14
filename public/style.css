@@ -89,6 +89,7 @@ button {
 
 /* ヘッダー */
 .header {
+  position: relative; /* 作業中の覆い（.header-shade）の基準 */
   flex: none;
   z-index: 10;
   /* 全画面ではステータスバーの下までヘッダーの色を伸ばし、その分の上余白は小さくする */
@@ -896,12 +897,19 @@ button.task-check:active { transform: scale(0.9); }
 .focus-card.is-empty[data-empty="cleared"] { box-shadow: 4px 4px 0 var(--yellow); }
 
 
-/* 作業中の覆い: カード以外（ヘッダーと下の一覧）に黒い半透明の板を敷いて操作できなくする */
+/* 作業中の覆い: カード以外（ヘッダーと下の一覧）に黒い半透明の板を敷いて操作できなくする。
+   iOS では本文のスクロール領域の中の fixed 要素がヘッダーまで届かないので、ヘッダーには別の覆いを重ねる */
 .session-shade {
   position: fixed;
   inset: 0;
   background: rgba(43, 38, 34, 0.55);
-  z-index: 15; /* ヘッダー(10)より上、シート(20)・トースト(30)・モーダル(35)より下 */
+  z-index: 15; /* シート(20)・トースト(30)・モーダル(35)より下 */
+}
+.header-shade {
+  position: absolute;
+  inset: 0;
+  background: rgba(43, 38, 34, 0.55);
+  z-index: 5;
 }
 .focus-card.is-session { z-index: 16; } /* カードだけ覆いの上に出す */
 

@@ -468,6 +468,7 @@ function renderQuests() {
   const shadeOn = !!state.session && state.session.phase !== 'summary';
   if (shadeOn && shade.hidden) document.querySelector('.main').scrollTo(0, 0); // カードが見えるように上へ
   shade.hidden = !shadeOn;
+  document.getElementById('header-shade').hidden = !shadeOn; // ヘッダーは別の覆いで隠す（iOS 対策）
 
   // 追加ボタンは常に出す（作業中は覆いの下になって押せない）
 
