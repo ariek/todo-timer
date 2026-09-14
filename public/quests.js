@@ -469,7 +469,7 @@ function renderQuests() {
   if (shadeOn && shade.hidden) document.querySelector('.main').scrollTo(0, 0); // カードが見えるように上へ
   shade.hidden = !shadeOn;
 
-  document.getElementById('add-task-btn').hidden = sessionActive();
+  // 追加ボタンは常に出す（作業中は覆いの下になって押せない）
 
   // 「ほかのやること」は「いまやる」と同じ規則で並べる（上から順に次に来る）
   const others = orderTodo(todo.filter((e) => !focus || e.task.id !== focus.task.id), now);
