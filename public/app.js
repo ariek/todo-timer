@@ -266,7 +266,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.16.0';
+const APP_VERSION = 'v0.17.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -334,8 +334,9 @@ function init() {
   let lastTab = null;
   try { lastTab = localStorage.getItem(LAST_TAB_KEY); } catch (err) { lastTab = null; }
   loadScreen();
+  if (sessionActive()) ui.showTasks = true; // 作業中はやること画面から始める
   if (ui.showTasks) renderQuests();
-  switchTab(TAB_NAMES.includes(lastTab) ? lastTab : 'categories');
+  switchTab(sessionActive() ? 'categories' : (TAB_NAMES.includes(lastTab) ? lastTab : 'categories'));
 
   document.getElementById('app-version').textContent = `やることクエスト ${APP_VERSION}`;
   // iOS はビューポート指定だけではピンチズームを止められないので、ジェスチャー自体を止める
