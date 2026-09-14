@@ -896,6 +896,15 @@ button.task-check:active { transform: scale(0.9); }
 .focus-card.is-empty[data-empty="cleared"] { box-shadow: 4px 4px 0 var(--yellow); }
 
 
+/* 作業中の覆い: カード以外（ヘッダーと下の一覧）に黒い半透明の板を敷いて操作できなくする */
+.session-shade {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 38, 34, 0.55);
+  z-index: 15; /* ヘッダー(10)より上、シート(20)・トースト(30)・モーダル(35)より下 */
+}
+.focus-card.is-session { z-index: 16; } /* カードだけ覆いの上に出す */
+
 /* 演出 */
 .fx-layer {
   position: fixed;

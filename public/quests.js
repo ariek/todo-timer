@@ -237,7 +237,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
       .filter(Boolean).join(' · ');
     const canSkip = !!task && canDeferTask(task, now); // 同じクエストにひとつ後ろの候補がなければ押せない（まとめ中はやることがないこともある）
     const left = Math.max(1, countdownRemainingSec(s));
-    return `<div class="focus-card focus-card--countdown" data-phase="countdown">
+    return `<div class="focus-card focus-card--countdown is-session" data-phase="countdown">
       <div class="focus-title">${escapeHtml(task.title)}</div>
       <div class="focus-meta">${escapeHtml(meta)}</div>
       <div class="qt"><div class="qt-dial">${ringHtml(0)}<div class="qt-center"><div class="qt-seconds">${digitsHtml(s.durationSec)}</div><div class="qt-slot">${minusBtn(1)}<span class="qt-ctl">${ICON_PLAY}</span>${plusBtn(1)}</div></div></div></div>
@@ -289,7 +289,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
   const comboCircle = inSession && s.combo >= 2
     ? `<div class="qt-combo"><strong>${s.combo}</strong><small>コンボ</small></div>`
     : '';
-  return `<div class="focus-card ${comboCircle ? 'has-combo' : ''} ${phase === 'idle' ? 'is-editable' : ''}" data-phase="${phase}" data-task-id="${task ? task.id : ''}">
+  return `<div class="focus-card ${comboCircle ? 'has-combo' : ''} ${phase === 'idle' ? 'is-editable' : ''} ${inSession ? 'is-session' : ''}" data-phase="${phase}" data-task-id="${task ? task.id : ''}">
     <div class="focus-title">${task ? escapeHtml(task.title) : ''}</div>
     <div class="focus-meta">${escapeHtml(meta)}</div>
     ${task && task.note && phase === 'idle' ? `<div class="focus-note">${escapeHtml(task.note)}</div>` : ''}
@@ -463,6 +463,11 @@ function renderQuests() {
   const focusHtml = renderFocusCard(focus, focus ? categoryName[focus.task.categoryId] || '' : '', now, { kind: emptyKind, doneCount: doneToday.length });
   document.getElementById('focus-quests').innerHTML = focusHtml;
   ui.focusTaskId = focus ? focus.task.id : null;
+  // 作業中（次への待ち〜完了演出）はカード以外を覆って操作できなくする。まとめの間は外す
+  const shade = document.getElementById('session-shade');
+  const shadeOn = !!state.session && state.session.phase !== 'summary';
+  if (shadeOn && shade.hidden) document.querySelector('.main').scrollTo(0, 0); // カードが見えるように上へ
+  shade.hidden = !shadeOn;
 
   document.getElementById('add-task-btn').hidden = sessionActive();
 
