@@ -898,10 +898,15 @@ button.task-check:active { transform: scale(0.9); }
 
 
 /* 作業中の覆い: カード以外（ヘッダーと下の一覧）に黒い半透明の板を敷いて操作できなくする。
-   iOS では本文のスクロール領域の中の fixed 要素がヘッダーまで届かないので、ヘッダーには別の覆いを重ねる */
+   本文の覆いはやること画面の中に絶対配置で敷き（本文の余白の分だけはみ出す）、ヘッダーは別の覆いで隠す。
+   fixed で全画面に敷くと Mac ではヘッダーの覆いと重なって濃くなり、iOS では逆にヘッダーまで届かないため */
+#view-quests { position: relative; min-height: 100%; } /* 内容が短くても覆いが画面の下まで届くように */
 .session-shade {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  left: -16px;
+  right: -16px;
+  top: -16px;
+  bottom: -32px; /* 本文の下余白と同じ。これ以上はみ出すとスクロールが増える */
   background: rgba(43, 38, 34, 0.55);
   z-index: 15; /* シート(20)・トースト(30)・モーダル(35)より下 */
 }
