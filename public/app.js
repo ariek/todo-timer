@@ -278,7 +278,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.19.0';
+const APP_VERSION = 'v0.19.1';
 let waitingWorker = null;
 
 function registerServiceWorker() {

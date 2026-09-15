@@ -10,7 +10,8 @@ const IDLE_END_MIN = 30;       // これ以上放置したらセッションを�
 
 let sessionLoop = null;
 let audioCtx = null;
-let lastCountdownBeep = 0; // 3・2・1 の音を1回ずつ鳴らすため
+let scheduledSounds = []; // 次への待ちの音（3・2・1 とスタート）は音の時計で先に予約しておく
+let startToneScheduled = false;
 
 const nowIso = () => new Date().toISOString();
 const secondsSince = (iso) => (Date.now() - new Date(iso).getTime()) / 1000;
@@ -85,8 +86,8 @@ function startSession(taskId) {
   state.session.durationSec = (QUEST_SECONDS[task.difficulty] || QUEST_SECONDS[1]) + extra;
   state.session.phase = 'countdown';
   state.session.phaseStartedAt = now;
-  lastCountdownBeep = 0;
   saveState();
+  scheduleCountdownSounds(state.session);
   ensureSessionLoop();
   render();
 }
@@ -112,7 +113,9 @@ function beginQuest(taskId) {
   });
   saveState();
   ensureSessionLoop();
-  playTone([880], 0, 0.6);
+  if (!startToneScheduled) playTone([880], 0, 0.6); // 予約済み（次への待ちから）ならそちらが鳴る
+  startToneScheduled = false;
+  scheduledSounds = [];
   render();
 }
 
@@ -163,7 +166,7 @@ function skipQuest() {
   s.timedOut = false;
   s.phase = 'countdown';
   s.phaseStartedAt = nowIso(); // 5秒を数え直す
-  lastCountdownBeep = 0;
+  scheduleCountdownSounds(s);
   touchSession();
   saveState();
   render();
@@ -280,6 +283,7 @@ function nextOrEnd() {
   s.phaseStartedAt = nowIso();
   s.timerStartedAt = null;
   saveState();
+  scheduleCountdownSounds(s);
   render();
 }
 
@@ -304,6 +308,7 @@ async function quitSession() {
 function endSession(reason) {
   const s = state.session;
   if (!s) return;
+  cancelScheduledSounds();
   hideClearModal();
   const endedAt = nowIso();
   const record = {
@@ -337,7 +342,7 @@ function closeSummary() {
 
 function ensureSessionLoop() {
   if (sessionLoop) return;
-  sessionLoop = setInterval(tickSession, 250);
+  sessionLoop = setInterval(tickSession, 100); // 数字の切り替わりを予約した音に近づける
 }
 
 function stopSessionLoop() {
@@ -364,16 +369,10 @@ function tickSession() {
     case 'break':
       if (breakRemainingSec(s) <= 0) endBreak();
       break;
-    case 'countdown': {
-      const left = countdownRemainingSec(s);
-      // カーレースのスタートのように、3・2・1 で短い低い音、スタートで長い高い音
-      if (left >= 1 && left <= 3 && left !== lastCountdownBeep) {
-        lastCountdownBeep = left;
-        playTone([440], 0, 0.18);
-      }
-      if (left <= 0) { lastCountdownBeep = 0; beginQuest(s.taskId); }
+    case 'countdown':
+      // 3・2・1 とスタートの音は scheduleCountdownSounds で音の時計に予約済み（ここで鳴らすと 250ms 単位の遅れとぶれが出る）
+      if (countdownRemainingSec(s) <= 0) beginQuest(s.taskId);
       break;
-    }
     default:
       break;
   }
@@ -393,6 +392,7 @@ function initSession() {
   if (s.phase === 'countdown') {
     // 待ちの間に閉じていたら、開いた時点から数え直す
     s.phaseStartedAt = nowIso();
+    scheduleCountdownSounds(s);
   }
   if (s.phase === 'running' && !s.timedOut && questRemainingSec(s) <= 0) { s.timedOut = true; }
   saveState();
@@ -412,6 +412,59 @@ function playCoin() {
 }
 
 // freqs: 鳴らす周波数の並び、gap: 音と音の間隔（秒）、length: 1音の長さ（秒）
+// 次への待ちの音を、音の時計（AudioContext）で正確な時刻に予約する。
+// 画面の数字が 3・2・1 に変わる瞬間に短い低い音、0 になる瞬間に長い高い音（カーレースのスタートのように）
+function scheduleCountdownSounds(session) {
+  cancelScheduledSounds();
+  if (!audioCtx) return;
+  if (audioCtx.state !== 'running') {
+    // iOS では最初の操作のあと音の時計が動き出すまで少しかかる。動き出してから同じ待ちに対して予約し直す
+    const started = session.phaseStartedAt;
+    audioCtx.resume().then(() => {
+      const cur = state.session;
+      if (cur && cur.phase === 'countdown' && cur.phaseStartedAt === started) scheduleCountdownSounds(cur);
+    }).catch(() => { /* 鳴らせなくても続行 */ });
+    return;
+  }
+  const startedMs = new Date(session.phaseStartedAt).getTime();
+  const nowMs = Date.now();
+  const base = audioCtx.currentTime;
+  [3, 2, 1].forEach((left) => {
+    const atMs = startedMs + (COUNTDOWN_SEC - left) * 1000;
+    if (atMs < nowMs - 50) return; // もう過ぎた分は鳴らさない
+    scheduleToneAt(base + Math.max(0, (atMs - nowMs) / 1000), 440, 0.18);
+  });
+  const startAtMs = startedMs + COUNTDOWN_SEC * 1000;
+  if (startAtMs >= nowMs - 50) {
+    scheduleToneAt(base + Math.max(0, (startAtMs - nowMs) / 1000), 880, 0.6);
+    startToneScheduled = true;
+  }
+}
+
+function scheduleToneAt(t, freq, length, list = scheduledSounds) {
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
+    gain.gain.setValueAtTime(0.22, t + Math.max(0.02, length - 0.08));
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + length + 0.05);
+    list.push(osc);
+  } catch (err) { /* 鳴らせなくても続行 */ }
+}
+
+// 予約した音を取り消す（スキップ、やめる、終了のとき）
+function cancelScheduledSounds() {
+  scheduledSounds.forEach((osc) => { try { osc.stop(); } catch (err) { /* すでに止まっている */ } });
+  scheduledSounds = [];
+  startToneScheduled = false;
+}
+
 function playTone(freqs, gap, length = 0.3) {
   if (!audioCtx) return;
   try {

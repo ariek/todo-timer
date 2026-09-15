@@ -110,6 +110,7 @@ function clearAnimationMs(data) {
 
 function showClearModal(data) {
   clearTimers.forEach(clearTimeout); clearTimers = [];
+  stopClearTimeline();
   const modal = document.getElementById('clear-modal');
   const card = modal.querySelector('.clear-card');
   document.getElementById('clear-title').textContent = data.title;
@@ -147,29 +148,29 @@ function showClearModal(data) {
     laterFx(() => burstAt(r.right - 20, cy, 18, 150), 350);
   }
 
+  // カウントアップの予定表（ms）。音は音の時計に先に予約し、数字は同じ時計を見ながら進めるので、音と数字がぴったり合う
   const rowEls = [...rowsEl.querySelectorAll('.clear-row')];
+  const events = [];
   let total = 0;
   rows.forEach((row, i) => {
-    laterFx(() => {
-      rowEls[i].classList.remove('is-hidden');
-      const strong = rowEls[i].querySelector('strong');
-      const from = total;
-      const v = row.value;
-      const steps = Math.max(1, Math.min(v, 8));
-      for (let k = 1; k <= steps; k++) {
-        laterFx(() => {
-          const cur = Math.round(v * k / steps);
-          strong.textContent = `+${cur}`;
-          num.textContent = String(from + cur);
-          boingEl(num);
-          if (typeof playCoin === 'function') playCoin();
-          if (k === steps) total = from + v;
-        }, Math.round(650 * k / steps));
-      }
-    }, 400 + i * 900);
+    const rowAt = 400 + i * 900;
+    events.push({ at: rowAt, fn: () => rowEls[i].classList.remove('is-hidden') });
+    const strong = rowEls[i].querySelector('strong');
+    const v = row.value;
+    const steps = Math.max(1, Math.min(v, 8));
+    const from = total;
+    for (let k = 1; k <= steps; k++) {
+      const cur = Math.round(v * k / steps);
+      events.push({ at: rowAt + Math.round(650 * k / steps), coin: true, fn: () => {
+        strong.textContent = `+${cur}`;
+        num.textContent = String(from + cur);
+        boingEl(num);
+      } });
+    }
+    total = from + v;
   });
   const endAt = 400 + rows.length * 900;
-  laterFx(() => {
+  events.push({ at: endAt, fn: () => {
     comboEl.classList.remove('is-hidden');
     if (data.levelUp) lvEl.classList.remove('is-hidden');
     card.classList.add('is-final'); // 両脇のきらめき
@@ -179,11 +180,49 @@ function showClearModal(data) {
       burstAt(r.left + r.width / 2, r.top + r.height / 2 + 40, data.levelUp ? 40 : 30, 200);
     }
     pulseXpBar();
-  }, endAt);
+  } });
+  runClearTimeline(events);
+}
+
+// 予定表どおりに数字を進め、チャリンを鳴らす。音の時計が使えればそれを基準にし、なければ画面の時計を使う
+let clearSounds = [];
+let clearTicker = 0; // 数字を進める刻み（requestAnimationFrame は画面が隠れていると止まるので setInterval を使う）
+function runClearTimeline(events) {
+  const useAudio = typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state === 'running';
+  const t0Audio = useAudio ? audioCtx.currentTime : 0;
+  const t0Perf = performance.now();
+  if (useAudio) {
+    events.forEach((ev) => {
+      if (!ev.coin) return;
+      const t = t0Audio + ev.at / 1000;
+      scheduleToneAt(t, 1760, 0.08, clearSounds);
+      scheduleToneAt(t + 0.045, 2349, 0.08, clearSounds);
+    });
+  }
+  let next = 0;
+  const step = () => {
+    const elapsed = useAudio ? (audioCtx.currentTime - t0Audio) * 1000 : performance.now() - t0Perf;
+    while (next < events.length && events[next].at <= elapsed) {
+      const ev = events[next];
+      next += 1;
+      ev.fn();
+      if (ev.coin && !useAudio && typeof playCoin === 'function') playCoin();
+    }
+    if (next >= events.length) { clearInterval(clearTicker); clearTicker = 0; }
+  };
+  clearTicker = setInterval(step, 40);
+  step();
+}
+
+function stopClearTimeline() {
+  if (clearTicker) { clearInterval(clearTicker); clearTicker = 0; }
+  clearSounds.forEach((osc) => { try { osc.stop(); } catch (err) { /* すでに止まっている */ } });
+  clearSounds = [];
 }
 
 function hideClearModal() {
   clearTimers.forEach(clearTimeout); clearTimers = [];
+  stopClearTimeline();
   setModalVisible(document.getElementById('clear-modal'), false);
 }
 
