@@ -501,7 +501,7 @@ button.task-check:active { transform: scale(0.9); }
 .fab {
   position: fixed;
   right: 18px;
-  bottom: calc(var(--safe-bottom) + 18px);
+  bottom: max(16px, calc(var(--safe-bottom) - 6px)); /* iPhone ではホームインジケーターの少し上（余白を空けすぎない） */
   width: 56px;
   height: 56px;
   border: 2.5px solid var(--ink);
