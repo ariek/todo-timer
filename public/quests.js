@@ -606,6 +606,8 @@ function showToast(message, kind = '') {
   const el = document.getElementById('toast');
   el.textContent = message;
   el.className = `toast ${kind}`;
+  const header = document.querySelector('.header');
+  if (header) el.style.setProperty('--toast-top', `${Math.round(header.getBoundingClientRect().bottom) + 8}px`);
   el.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.hidden = true; }, 1800);
