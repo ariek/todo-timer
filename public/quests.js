@@ -487,7 +487,7 @@ function renderQuests() {
   shade.hidden = !shadeOn;
   document.getElementById('header-shade').hidden = !shadeOn; // ヘッダーは別の覆いで隠す（iOS 対策）
 
-  document.getElementById('add-task-btn').hidden = sessionActive(); // 右下の固定ボタンは覆いの上に浮くので、作業中は隠す
+  updateFabs(); // 作業中はやることの「＋」を隠す（右下の固定ボタンは覆いの上に浮くため）
 
   // 「やること」の一覧は「いまやる」と同じ規則で並べ、いまやるも含めてクエスト内の並びをそのまま出す（先頭がいまやる）
   const others = orderTodo(todo, now);
@@ -560,12 +560,12 @@ function openTaskSheet(taskId = null) {
   document.getElementById('task-sheet-title').textContent = task ? 'やることを編集' : 'やることを追加';
   document.getElementById('task-delete').hidden = !task;
   updateTaskFormVisibility();
-  document.getElementById('task-sheet').hidden = false;
+  showSheet(document.getElementById('task-sheet'));
   setTimeout(() => form.elements.title.focus(), 50);
 }
 
 function closeTaskSheet() {
-  document.getElementById('task-sheet').hidden = true;
+  hideSheet(document.getElementById('task-sheet'));
 }
 
 function updateTaskFormVisibility() {
@@ -622,7 +622,7 @@ function reorderTasksFromList(row, ul) {
 }
 
 function initQuests() {
-  document.getElementById('tasks-back').addEventListener('click', () => showCategoryList());
+  document.getElementById('tasks-back').addEventListener('click', () => slideOutTasks()); // 右スワイプと同じ動きで一覧へ
   document.getElementById('focus-quests').addEventListener('click', (e) => {
     if (e.target.closest('[data-back-to-list]')) showCategoryList();
   });

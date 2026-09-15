@@ -140,12 +140,12 @@ function openCategorySheet(categoryId = null) {
   document.getElementById('category-sheet-title').textContent = category ? 'クエストを編集' : 'クエストを追加';
   document.getElementById('category-delete').hidden = !category;
   renderPickers();
-  document.getElementById('category-sheet').hidden = false;
+  showSheet(document.getElementById('category-sheet'));
   setTimeout(() => form.elements.name.focus(), 50);
 }
 
 function closeCategorySheet() {
-  document.getElementById('category-sheet').hidden = true;
+  hideSheet(document.getElementById('category-sheet'));
 }
 
 // 色とアイコンの選択肢

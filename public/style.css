@@ -171,7 +171,46 @@ button {
   -webkit-overflow-scrolling: touch;
   /* 本文は 900px までで中央寄せ。左右の余白で中央に置く */
   padding: 16px max(16px, calc((100% - 900px) / 2)) calc(32px + var(--safe-bottom));
+  overflow-x: hidden; /* 右スワイプで画面をずらしても横にはみ出さない */
+  position: relative;
 }
+
+/* 記録・設定の画面: 開くときは下から上がり、閉じるときは後ろの画面に重ねたまま下へ下がる */
+.view.is-rising { position: relative; z-index: 4; animation: view-up 0.26s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.view.is-sinking {
+  position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none;
+  padding: 0 max(16px, calc((100% - 900px) / 2)) 72px; box-sizing: border-box; /* 本文の左右の余白と同じ */
+  animation: view-down 0.24s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
+}
+/* 動いている間は、余白まで含めて不透明な紙にして後ろが透けないようにする */
+.view.is-rising::before, .view.is-sinking::before {
+  content: ''; position: absolute; top: -16px; bottom: -40px; left: -16px; right: -16px;
+  background: var(--bg); z-index: -1;
+}
+.view.is-sinking::before { left: 0; right: 0; }
+@keyframes view-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes view-down { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .view.is-rising, .view.is-sinking { animation: none; } }
+
+/* やること画面の右スワイプ: 指について動くやること画面と、その後ろで追いかけてくる一覧 */
+#view-quests { touch-action: pan-y; } /* 縦スクロールはブラウザに任せ、横の動きはこちらで受ける */
+#view-quests.is-swiping { position: relative; z-index: 3; will-change: transform; }
+/* 動いている間は、余白まで含めて不透明な紙にして、後ろの一覧が透けないようにする */
+#view-quests.is-swiping::before {
+  content: '';
+  position: absolute;
+  top: -16px; bottom: -40px; left: -16px; right: -16px;
+  background: var(--bg);
+  box-shadow: -6px 0 16px rgba(43, 38, 34, 0.18);
+  z-index: -1;
+}
+/* 後ろに置く画面（右スワイプ中の一覧、記録・設定が上がってくる間の元の画面） */
+.view.is-behind {
+  position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none; will-change: transform;
+  padding: 0 max(16px, calc((100% - 900px) / 2)) 72px; /* 本文の左右の余白と同じ */
+  box-sizing: border-box;
+}
+.is-settling { transition: transform 0.2s ease-out; }
 
 .placeholder {
   padding: 40px 0;
@@ -375,6 +414,18 @@ button.task-check:active { transform: scale(0.9); }
   z-index: 20;
 }
 
+/* 開くとき: 半透明の板はその場でふわっと出て、シートだけが下から上がってくる（y: 100% → 0%） */
+.sheet-backdrop { animation: sheet-backdrop-in 0.2s ease-out; }
+.sheet { animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.3, 1); }
+@keyframes sheet-backdrop-in { from { background-color: rgba(91, 74, 63, 0); } to { background-color: rgba(91, 74, 63, 0.35); } }
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+/* 閉じるとき: シートが下へ下がり、板はその場で薄くなる */
+.sheet-backdrop.is-closing { animation: sheet-backdrop-out 0.22s ease-in forwards; pointer-events: none; }
+.sheet-backdrop.is-closing .sheet { animation: sheet-down 0.24s cubic-bezier(0.6, 0, 0.8, 0.4) forwards; }
+@keyframes sheet-backdrop-out { from { background-color: rgba(91, 74, 63, 0.35); } to { background-color: rgba(91, 74, 63, 0); } }
+@keyframes sheet-down { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .sheet-backdrop, .sheet, .sheet-backdrop.is-closing, .sheet-backdrop.is-closing .sheet { animation: none; } }
+
 .sheet {
   width: 100%;
   max-width: 520px;
@@ -514,6 +565,7 @@ button.task-check:active { transform: scale(0.9); }
   z-index: 9;
 }
 .fab:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.fab.is-under { z-index: 2; } /* スライド中、一覧の「＋」はやること画面（z-index 3）の下に置く */
 .fab-svg { width: 28px; height: 28px; stroke-width: 2.6; }
 /* 追加ボタンの下に最後の行が隠れないように、一覧の下に余白を取る */
 #view-categories, #view-quests { padding-bottom: 72px; }
