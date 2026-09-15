@@ -124,7 +124,6 @@
   <main class="main">
     <section class="view" id="view-categories" data-view="categories">
       <ul class="category-list" id="category-list"></ul>
-      <button class="fab" id="category-add-btn" aria-label="クエストを追加" title="クエストを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
     </section>
     <section class="view" id="view-quests" data-view="quests" hidden>
       <div class="tasks-bar">
@@ -134,7 +133,6 @@
       <div id="focus-quests"></div>
       <div class="session-shade" id="session-shade" hidden></div>
       <div id="quest-list"></div>
-      <button class="fab" id="add-task-btn" aria-label="やることを追加" title="やることを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
     </section>
     <section class="view" id="view-log" data-view="log" hidden>
       <div class="log-stats" id="log-stats"></div>
@@ -220,6 +218,9 @@
       </section>
     </section>
   </main>
+  <!-- 右下の追加ボタン。画面（.main の中の view）が横に動いても位置が変わらないよう、本文の外に置く -->
+  <button class="fab" id="category-add-btn" aria-label="クエストを追加" title="クエストを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
+  <button class="fab" id="add-task-btn" aria-label="やることを追加" title="やることを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
 
   <div class="sheet-backdrop" id="task-sheet" hidden>
     <form class="sheet" id="task-form" autocomplete="off">
