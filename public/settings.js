@@ -175,10 +175,20 @@ function initSettings() {
     form.elements.icon.value = b.dataset.icon;
     renderPickers();
   });
+  let lastSubmit = 0;
+  let fromPointer = false;
+  form.querySelector('button[type="submit"]').addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    fromPointer = true;
+    form.requestSubmit();
+    fromPointer = false;
+  });
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    if (!fromPointer && Date.now() - lastSubmit < 400) return; // pointerdown で処理した直後のクリック分は無視
+    lastSubmit = Date.now();
     const name = form.elements.name.value.trim();
-    if (!name) { form.elements.name.focus(); return; }
+    if (!name) { form.elements.name.focus(); showToast('クエストの名前を入力してください'); return; }
     upsertCategory({ id: form.elements.id.value || null, name, color: form.elements.color.value, icon: form.elements.icon.value });
     closeCategorySheet();
     render();

@@ -676,10 +676,25 @@ function initQuests() {
 
   const form = document.getElementById('task-form');
   form.elements.repeatType.addEventListener('change', updateTaskFormVisibility);
+  // 日付やプルダウンの選択パネルが開いたままだと最初のクリックがパネルを閉じるのに使われるので、
+  // 選び終えたらすぐ選択を外し、保存は押し始めた瞬間（pointerdown）にも受け付ける
+  ['deadline', 'categoryId', 'repeatType'].forEach((name) => {
+    form.elements[name].addEventListener('change', () => form.elements[name].blur());
+  });
+  let lastSubmit = 0;
+  let fromPointer = false;
+  form.querySelector('button[type="submit"]').addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    fromPointer = true;
+    form.requestSubmit();
+    fromPointer = false;
+  });
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    if (!fromPointer && Date.now() - lastSubmit < 400) return; // pointerdown で処理した直後のクリック分は無視
+    lastSubmit = Date.now();
     const data = readTaskForm();
-    if (!data.title) { form.elements.title.focus(); return; }
+    if (!data.title) { form.elements.title.focus(); showToast('やることを入力してください'); return; }
     if (!data.categoryId) { showToast('先にクエスト一覧でクエストを作ってください'); return; }
     const isNew = !data.id;
     const saveBtn = form.querySelector('button[type="submit"]');

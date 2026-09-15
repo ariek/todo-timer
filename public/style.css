@@ -415,6 +415,18 @@ button.task-check:active { transform: scale(0.9); }
 
 .field textarea { resize: vertical; }
 
+/* iOS の日付欄は独自の見た目で幅と高さが指定どおりにならないので、標準の見た目を外してほかの欄にそろえる */
+.field input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+
 .seg {
   display: flex;
   gap: 6px;
