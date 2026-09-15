@@ -561,7 +561,7 @@ function openTaskSheet(taskId = null) {
   document.getElementById('task-delete').hidden = !task;
   updateTaskFormVisibility();
   showSheet(document.getElementById('task-sheet'));
-  setTimeout(() => form.elements.title.focus(), 50);
+  setTimeout(() => form.elements.title.focus(), 320); // シートが上がりきってから（途中で入力欄に移るとキーボードで位置が飛ぶ）
 }
 
 function closeTaskSheet() {

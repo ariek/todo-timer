@@ -302,7 +302,13 @@ const sheetCloseTimers = new WeakMap();
 function showSheet(backdrop) {
   clearTimeout(sheetCloseTimers.get(backdrop)); // 閉じている途中なら止めて開き直す
   backdrop.classList.remove('is-closing');
-  backdrop.hidden = false;
+  if (backdrop.hidden) {
+    // いったん「下にある状態」で描いてから定位置へ動かす（iOS でも確実に下から上がる）
+    backdrop.classList.add('is-opening');
+    backdrop.hidden = false;
+    void backdrop.offsetWidth;
+  }
+  backdrop.classList.remove('is-opening');
 }
 let lastSheetClosedAt = 0;
 function hideSheet(backdrop) {
@@ -350,7 +356,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.21.3';
+const APP_VERSION = 'v0.21.4';
 let waitingWorker = null;
 
 function registerServiceWorker() {

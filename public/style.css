@@ -416,16 +416,16 @@ button.task-check:active { transform: scale(0.9); }
 }
 
 /* 開くとき: 半透明の板はその場でふわっと出て、シートだけが下から上がってくる（y: 100% → 0%） */
-.sheet-backdrop { animation: sheet-backdrop-in 0.2s ease-out; }
-.sheet { animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.3, 1); }
-@keyframes sheet-backdrop-in { from { background-color: rgba(91, 74, 63, 0); } to { background-color: rgba(91, 74, 63, 0.35); } }
-@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-/* 閉じるとき: シートが下へ下がり、板はその場で薄くなる */
-.sheet-backdrop.is-closing { animation: sheet-backdrop-out 0.22s ease-in forwards; } /* 閉じている間も板でタップを受け止め、下の「＋」に届かないようにする */
-.sheet-backdrop.is-closing .sheet { animation: sheet-down 0.24s cubic-bezier(0.6, 0, 0.8, 0.4) forwards; }
-@keyframes sheet-backdrop-out { from { background-color: rgba(91, 74, 63, 0.35); } to { background-color: rgba(91, 74, 63, 0); } }
-@keyframes sheet-down { from { transform: translateY(0); } to { transform: translateY(100%); } }
-@media (prefers-reduced-motion: reduce) { .sheet-backdrop, .sheet, .sheet-backdrop.is-closing, .sheet-backdrop.is-closing .sheet { animation: none; } }
+/* 動きは transition で付ける（表示した直後に animation を始めると iOS で飛ばされることがあるため、
+   JS で「下にある状態」を先に描いてから「定位置」へ移す） */
+.sheet-backdrop { transition: background-color 0.2s ease-out; }
+.sheet { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.sheet-backdrop.is-opening { background-color: rgba(91, 74, 63, 0); }
+.sheet-backdrop.is-opening .sheet { transform: translateY(100%); }
+/* 閉じるとき: シートが下へ下がり、板はその場で薄くなる。閉じている間も板でタップを受け止め、下の「＋」に届かないようにする */
+.sheet-backdrop.is-closing { background-color: rgba(91, 74, 63, 0); transition-timing-function: ease-in; }
+.sheet-backdrop.is-closing .sheet { transform: translateY(100%); transition: transform 0.24s cubic-bezier(0.6, 0, 0.8, 0.4); }
+@media (prefers-reduced-motion: reduce) { .sheet-backdrop, .sheet, .sheet-backdrop.is-closing .sheet { transition: none; } }
 
 .sheet {
   width: 100%;
