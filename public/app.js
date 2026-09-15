@@ -350,7 +350,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.21.2';
+const APP_VERSION = 'v0.21.3';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -518,7 +518,7 @@ function init() {
   render();
 
   document.getElementById('tabbar').addEventListener('click', (e) => {
-    if (e.target.closest('#hd-close')) { showCategoryList(); return; } // × でクエスト一覧へ
+    if (e.target.closest('#hd-close')) { switchTab('categories'); return; } // × で元の画面（一覧またはやること画面）へ
     const btn = e.target.closest('.tab');
     if (!btn) return;
     switchTab(btn.dataset.tab);

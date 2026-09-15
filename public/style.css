@@ -188,8 +188,8 @@ button {
   background: var(--bg); z-index: -1;
 }
 .view.is-sinking::before { left: 0; right: 0; }
-@keyframes view-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-@keyframes view-down { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes view-up { from { transform: translateY(100vh); } to { transform: translateY(0); } }
+@keyframes view-down { from { transform: translateY(0); } to { transform: translateY(100vh); } }
 @media (prefers-reduced-motion: reduce) { .view.is-rising, .view.is-sinking { animation: none; } }
 
 /* やること画面の右スワイプ: 指について動くやること画面と、その後ろで追いかけてくる一覧 */
@@ -205,10 +205,11 @@ button {
   z-index: -1;
 }
 /* 後ろに置く画面（右スワイプ中の一覧、記録・設定が上がってくる間の元の画面） */
-.view.is-behind {
+.view.is-behind, #view-quests.is-behind, #view-categories.is-behind { /* id 指定の position: relative（覆いの基準）に負けないよう id でも書く */
   position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none; will-change: transform;
   padding: 0 max(16px, calc((100% - 900px) / 2)) 72px; /* 本文の左右の余白と同じ */
   box-sizing: border-box;
+  min-height: 0;
 }
 .is-settling { transition: transform 0.2s ease-out; }
 
