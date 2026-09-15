@@ -18,15 +18,19 @@ function sortedCategories() {
   return [...state.categories].sort((a, b) => a.order - b.order);
 }
 
+// 保存したクエストの id を返す
 function upsertCategory(data) {
+  let id = data.id;
   if (data.id) {
     const category = state.categories.find((a) => a.id === data.id);
     if (category) Object.assign(category, { name: data.name, color: data.color, icon: data.icon });
   } else {
     const maxOrder = state.categories.reduce((m, a) => Math.max(m, a.order), -1);
-    state.categories.push({ id: newId('c'), name: data.name, color: data.color, icon: data.icon, order: maxOrder + 1 });
+    id = newId('c');
+    state.categories.push({ id, name: data.name, color: data.color, icon: data.icon, order: maxOrder + 1 });
   }
   saveState();
+  return id;
 }
 
 function deleteCategory(categoryId) {
@@ -189,9 +193,15 @@ function initSettings() {
     lastSubmit = Date.now();
     const name = form.elements.name.value.trim();
     if (!name) { form.elements.name.focus(); showToast('クエストの名前を入力してください'); return; }
-    upsertCategory({ id: form.elements.id.value || null, name, color: form.elements.color.value, icon: form.elements.icon.value });
+    const isNew = !form.elements.id.value;
+    const id = upsertCategory({ id: form.elements.id.value || null, name, color: form.elements.color.value, icon: form.elements.icon.value });
     closeCategorySheet();
     render();
+    if (isNew) {
+      // 新しいクエストは空なので、そのやること画面に移って最初のやることの追加シートを続けて出す
+      openTasks(id);
+      setTimeout(() => openTaskSheet(), 80);
+    }
   });
   document.getElementById('category-delete').addEventListener('click', async () => {
     const id = form.elements.id.value;
