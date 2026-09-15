@@ -278,7 +278,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.18.1';
+const APP_VERSION = 'v0.18.2';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -296,6 +296,8 @@ function registerServiceWorker() {
     document.getElementById('app-update').addEventListener('click', async () => {
       try {
         await reg.update();
+        // update() は新しい版の取り込み（installing）が始まった時点で戻るので、入り終わるまで待ってから判断する
+        if (reg.installing) await waitInstalled(reg.installing);
         if (reg.waiting) offerUpdate(reg.waiting);
         else showToast('最新の版です');
       } catch (err) {
@@ -309,6 +311,17 @@ function registerServiceWorker() {
     if (reloading) return;
     reloading = true;
     window.location.reload();
+  });
+}
+
+// 取り込み中のサービスワーカーが installed（または redundant）になるまで待つ。長くても 15 秒
+function waitInstalled(worker) {
+  return new Promise((resolve) => {
+    if (worker.state !== 'installing') { resolve(); return; }
+    const timer = setTimeout(resolve, 15000);
+    worker.addEventListener('statechange', () => {
+      if (worker.state !== 'installing') { clearTimeout(timer); resolve(); }
+    });
   });
 }
 
