@@ -59,9 +59,9 @@ function exportJson() {
 function validateImport(data) {
   if (!data || typeof data !== 'object') return 'JSON の形式が違います';
   if (!Array.isArray(data.categories) || !Array.isArray(data.tasks) || !Array.isArray(data.logs)) {
-    return 'categories / tasks / logs が見つかりません';
+    return 'データの形式が違います（クエスト・やること・記録が見つかりません）';
   }
-  if (!data.player || typeof data.player.xp !== 'number') return 'player の情報が見つかりません';
+  if (!data.player || typeof data.player.xp !== 'number') return 'データの形式が違います（レベルと経験値が見つかりません）';
   return null;
 }
 
