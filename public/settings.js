@@ -183,13 +183,18 @@ function initSettings() {
   let fromPointer = false;
   form.querySelector('button[type="submit"]').addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
+    e.preventDefault(); // 標準のフォーカス移動を止める（入力欄からフォーカスが外れてキーボードが閉じるのを防ぐ）
     fromPointer = true;
     form.requestSubmit();
     fromPointer = false;
   });
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (!fromPointer && Date.now() - lastSubmit < 400) return; // pointerdown で処理した直後のクリック分は無視
+    if (!fromPointer && Date.now() - lastSubmit < 400) {
+      // pointerdown で処理した直後のクリック分は無視。入力が空のままなら、指を離したあとも入力欄にフォーカスを戻しておく
+      if (!form.elements.name.value.trim()) form.elements.name.focus();
+      return;
+    }
     lastSubmit = Date.now();
     const name = form.elements.name.value.trim();
     if (!name) { form.elements.name.focus(); showToast('クエストの名前を入力してください'); return; }
