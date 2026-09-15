@@ -579,7 +579,7 @@ button.task-check:active { transform: scale(0.9); }
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 24px);
+  top: var(--toast-top, calc(var(--header-top) + 56px)); /* ヘッダーのすぐ下。showToast がヘッダーの実測の高さで上書きする */
   transform: translateX(-50%);
   padding: 8px 18px;
   background: var(--yellow);
@@ -595,7 +595,7 @@ button.task-check:active { transform: scale(0.9); }
 .toast.is-levelup { background: var(--pink); }
 
 @keyframes toast-pop {
-  from { transform: translateX(-50%) translateY(10px) scale(0.9); opacity: 0; }
+  from { transform: translateX(-50%) translateY(-10px) scale(0.9); opacity: 0; }
   to { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
 }
 
