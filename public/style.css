@@ -497,8 +497,26 @@ button.task-check:active { transform: scale(0.9); }
   font-size: 14px;
 }
 
-/* 一覧の末尾の追加ボタンは右寄せ */
-#category-add-btn, #add-task-btn { display: block; margin-left: auto; }
+/* 右下の丸い追加ボタン（クエスト一覧とやること画面）。目立たない生成りの地 */
+.fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(var(--safe-bottom) + 18px);
+  width: 56px;
+  height: 56px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50% 45% 50% 45%;
+  background: var(--paper); /* 白（カードと同じ紙の色）で目立たせない */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 3px 3px 0 var(--ink);
+  z-index: 9;
+}
+.fab:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.fab-svg { width: 28px; height: 28px; stroke-width: 2.6; }
+/* 追加ボタンの下に最後の行が隠れないように、一覧の下に余白を取る */
+#view-categories, #view-quests { padding-bottom: 72px; }
 
 .btn-primary { background: var(--mint); box-shadow: 2px 2px 0 var(--ink); }
 .btn-primary:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }

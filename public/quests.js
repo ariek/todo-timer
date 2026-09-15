@@ -193,7 +193,7 @@ function comboBadge(combo) {
 function emptyFocusHtml(kind, doneCount = 0) {
   const sparkle = iconHtml('i-sparkle', 'icon icon-sparkle');
   if (kind === 'none') {
-    return `<div class="focus-empty"><strong>まだやることがありません</strong><span>下の「やることを追加」から、最初のやることを書き出そう</span></div>`;
+    return `<div class="focus-empty"><strong>まだやることがありません</strong><span>右下の「＋」から、最初のやることを書き出そう</span></div>`;
   }
   if (kind === 'cleared') {
     return `<div class="focus-empty"><strong>クエストクリア！ ${sparkle}</strong><span>今日は ${doneCount} 件やり遂げました。おつかれさま！</span>
@@ -487,7 +487,7 @@ function renderQuests() {
   shade.hidden = !shadeOn;
   document.getElementById('header-shade').hidden = !shadeOn; // ヘッダーは別の覆いで隠す（iOS 対策）
 
-  // 追加ボタンは常に出す（作業中は覆いの下になって押せない）
+  document.getElementById('add-task-btn').hidden = sessionActive(); // 右下の固定ボタンは覆いの上に浮くので、作業中は隠す
 
   // 「やること」の一覧は「いまやる」と同じ規則で並べ、いまやるも含めてクエスト内の並びをそのまま出す（先頭がいまやる）
   const others = orderTodo(todo, now);
@@ -529,7 +529,7 @@ function renderQuests() {
     </details>`;
   }
   if (state.tasks.length === 0) {
-    html = '<p class="quest-empty">下の「やることを追加」から最初のやることを登録しましょう。</p>';
+    html = '<p class="quest-empty">右下の「＋」から最初のやることを登録しましょう。</p>';
   }
   document.getElementById('quest-list').innerHTML = html;
   // 折りたたみの開閉を覚える
