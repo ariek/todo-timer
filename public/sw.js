@@ -1,7 +1,7 @@
 // サービスワーカー: アプリ本体をキャッシュしてオフラインでも開けるようにする
 // アプリのファイルを変更したら CACHE_VERSION を上げる（更新通知のきっかけになる）
 
-const CACHE_VERSION = 'v0.21.1';
+const CACHE_VERSION = 'v0.21.2';
 const CACHE_NAME = `todo-timer-${CACHE_VERSION}`;
 const FONT_CACHE = 'todo-timer-fonts';
 
