@@ -27,7 +27,7 @@ defined = set(m.group(1) for m in re.finditer(r'\bfunction\s+([A-Za-z_$][\w$]*)\
 required = [
     'init', 'render', 'switchTab', 'saveState', 'loadState', 'migrate', 'sampleState', 'newId', 'escapeHtml', 'iconHtml',
     'measureInsets', 'registerServiceWorker', 'waitInstalled', 'renderSessionModals', 'renderHeader', 'linkifyHtml', 'renderOverview', 'initOverview', 'openTasks', 'showCategoryList', 'saveScreen', 'loadScreen', 'categoryIconHtml', 'categoryColorHex', 'categoryIconId', 'injectCategoryIcons', 'renderPickers', 'nextFreeColor',
-    'initQuests', 'renderQuests', 'renderFocusCard', 'emptyFocusHtml', 'pickFocus', 'sortFocusOrder', 'orderTodo', 'reorderTasksFromList', 'nextTaskOrder', 'taskOrder', 'isPastDue', 'isPinned', 'categorySequence', 'canDeferTask', 'deferTask', 'assignOrders', 'completeTask', 'undoComplete',
+    'initQuests', 'renderQuests', 'renderFocusCard', 'emptyFocusHtml', 'runningBaseHtml', 'pickFocus', 'sortFocusOrder', 'orderTodo', 'reorderTasksFromList', 'nextTaskOrder', 'taskOrder', 'isPastDue', 'isPinned', 'categorySequence', 'canDeferTask', 'deferTask', 'assignOrders', 'completeTask', 'undoComplete',
     'upsertTask', 'deleteTask', 'deferTask', 'addRegisterXp', 'removeRegisterXp', 'openTaskSheet', 'closeTaskSheet', 'showToast', 'comboBadge',
     'initTimer', 'initSession', 'startSession', 'beginQuest', 'pauseQuest', 'resumeQuest', 'completeQuest', 'quitSession', 'endSession',
     'closeSummary', 'tickSession', 'ensureSessionLoop', 'stopSessionLoop', 'renderTimerTick', 'renderTimerMini', 'pickNextQuest',
