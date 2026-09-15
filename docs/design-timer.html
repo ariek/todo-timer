@@ -174,24 +174,21 @@
 
   <!-- 1 -->
   <section class="mock-section">
-    <p class="mock-label">1. 待機（セッション前）。難易度に応じた秒数を表示。主ボタンは「はじめる」</p>
-    <div class="focus-card">
+    <p class="mock-label">1. 待機（セッション前）。リングとスキップは出さず、タイトルと秒数を大きく。高さは実行中と同じ（実行中の構造を透明な下敷きに）</p>
+    <div class="focus-card focus-card--idle">
       <div class="focus-title">机の上の書類を仕分ける</div>
       <div class="focus-meta">机 · ★★ · 3日ごと · 3日遅れ</div>
-      <div class="qt">
-        <div class="qt-dial">
-          <svg class="qt-ring" viewBox="0 0 130 130"><g filter="url(#wobble)">
-            <circle class="qt-track" cx="65" cy="65" r="54"/>
-            <circle class="qt-fill" cx="65" cy="65" r="54" stroke-dasharray="339.3" stroke-dashoffset="0"/>
-            <circle class="qt-edge" cx="65" cy="65" r="58.5"/><circle class="qt-edge" cx="65" cy="65" r="49.5"/>
-          </g></svg>
-          <div class="qt-center"><div class="qt-seconds"><span>3</span><span>0</span><span>0</span></div><div class="qt-slot"><button class="qt-ctl" aria-label="10秒引く"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button><button class="qt-ctl" aria-label="はじめる"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></button><button class="qt-ctl" aria-label="10秒足す"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button></div></div>
-          
+      <div class="qt"><div class="qt-dial"><svg class="qt-ring" viewBox="0 0 130 130"><g><circle class="qt-track" cx="65" cy="65" r="54"/><circle class="qt-fill" cx="65" cy="65" r="54" stroke-dasharray="339.3" stroke-dashoffset="0"/><circle class="qt-edge" cx="65" cy="65" r="58.5"/><circle class="qt-edge" cx="65" cy="65" r="49.5"/></g></svg><div class="qt-center"><div class="qt-seconds"><span>3</span><span>0</span><span>0</span></div><div class="qt-slot"><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></span><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg></span><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></span></div></div></div></div>
+      <div class="qt-actions"><span class="btn btn-primary qt-main">はじめる</span><div class="qt-subrow"><span class="btn qt-small">× やめる</span><span class="btn qt-small">スキップ</span></div></div>
+      <div class="cd-overlay">
+        <div class="cd-body">
+          <div class="cd-title">机の上の書類を仕分ける<span class="cd-sec">（300秒）</span></div>
+          <div class="cd-meta">机 · ★★ · 3日ごと · 3日遅れ</div>
         </div>
-      </div>
-      <div class="qt-actions">
-        <button class="btn btn-primary qt-main is-start"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg> はじめる</button>
-        <div class="qt-subrow"><button class="btn qt-small">スキップ</button></div>
+        <div class="qt-actions">
+          <button class="btn btn-primary qt-main is-start"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg> はじめる</button>
+          <div class="qt-subrow"><span class="btn qt-small is-ghost">スキップ</span></div>
+        </div>
       </div>
     </div>
   </section>
@@ -272,24 +269,12 @@
 
   <!-- 5 -->
   <section class="mock-section">
-    <p class="mock-label">5. 次への待ち。待機中のカードを透明な下敷きにして高さをそろえ、その上にタイトル（大きく中央）、秒数、クエスト名など、カウントダウンの数字を重ねる</p>
+    <p class="mock-label">5. 次への待ち。実行中と同じ構造を透明な下敷きにして高さをそろえ、その上にタイトル（大きく中央）、秒数、クエスト名など、カウントダウンの数字を重ねる</p>
     <div class="focus-card focus-card--countdown">
       <div class="focus-title">マグカップを片付ける</div>
-      <div class="focus-meta">机 · ★ · 毎日 · 1日遅れ</div>
-      <div class="qt">
-        <div class="qt-dial">
-          <svg class="qt-ring" viewBox="0 0 130 130"><g filter="url(#wobble)">
-            <circle class="qt-track" cx="65" cy="65" r="54"/>
-            <circle class="qt-fill" cx="65" cy="65" r="54" stroke-dasharray="339.3" stroke-dashoffset="0"/>
-            <circle class="qt-edge" cx="65" cy="65" r="58.5"/><circle class="qt-edge" cx="65" cy="65" r="49.5"/>
-          </g></svg>
-          <div class="qt-center"><div class="qt-seconds"><span>1</span><span>8</span><span>0</span></div><div class="qt-slot"><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></span><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></span><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></span></div></div>
-        </div>
-      </div>
-      <div class="qt-actions">
-        <button class="btn btn-primary qt-main" disabled><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg> はじめる</button>
-        <div class="qt-subrow"><button class="btn qt-small" disabled>スキップ</button></div>
-      </div>
+      <div class="focus-meta">キッチン · ★ · 毎日 · 1日遅れ</div>
+      <div class="qt"><div class="qt-dial"><svg class="qt-ring" viewBox="0 0 130 130"><g><circle class="qt-track" cx="65" cy="65" r="54"/><circle class="qt-fill" cx="65" cy="65" r="54" stroke-dasharray="339.3" stroke-dashoffset="0"/><circle class="qt-edge" cx="65" cy="65" r="58.5"/><circle class="qt-edge" cx="65" cy="65" r="49.5"/></g></svg><div class="qt-center"><div class="qt-seconds"><span>1</span><span>8</span><span>0</span></div><div class="qt-slot"><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></span><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg></span><span class="qt-ctl"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></span></div></div></div></div>
+      <div class="qt-actions"><span class="btn btn-primary qt-main">はじめる</span><div class="qt-subrow"><span class="btn qt-small">× やめる</span><span class="btn qt-small">スキップ</span></div></div>
       <div class="cd-overlay">
         <div class="cd-body">
           <div class="cd-title">マグカップを片付ける<span class="cd-sec">（180秒）</span></div>

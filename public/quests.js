@@ -166,6 +166,14 @@ const ICON_MINUS = '<svg class="icon" aria-hidden="true"><use href="#i-minus"/><
 function plusBtn(sec) { return `<button class="qt-ctl" data-qt="plus" aria-label="10秒足す" ${sec >= 999 ? 'disabled' : ''}>${ICON_PLUS}</button>`; }
 function minusBtn(sec) { return `<button class="qt-ctl" data-qt="minus" aria-label="10秒引く" ${sec <= 0 ? 'disabled' : ''}>${ICON_MINUS}</button>`; }
 
+// 実行中のカードと同じ構造（透明な下敷き用）。待機中と次への待ちの高さを実行中とそろえるために使う
+function runningBaseHtml(task, meta, seconds) {
+  return `<div class="focus-title">${escapeHtml(task.title)}</div>
+      <div class="focus-meta">${escapeHtml(meta)}</div>
+      <div class="qt"><div class="qt-dial">${ringHtml(0)}<div class="qt-center"><div class="qt-seconds">${digitsHtml(seconds)}</div><div class="qt-slot"><button type="button" class="qt-ctl" tabindex="-1">${ICON_MINUS}</button><button type="button" class="qt-ctl" tabindex="-1">${ICON_PAUSE}</button><button type="button" class="qt-ctl" tabindex="-1">${ICON_PLUS}</button></div></div></div></div>
+      <div class="qt-actions"><button type="button" class="btn btn-primary qt-main" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="#i-check-box"/></svg> できた！</button><div class="qt-subrow"><button type="button" class="btn qt-small qt-quit" tabindex="-1">× やめる</button><button type="button" class="btn qt-small" tabindex="-1">スキップ</button></div></div>`;
+}
+
 function ringHtml(offset, color = null) {
   return `<svg class="qt-ring" viewBox="0 0 130 130"><g filter="url(#wobble)">
       <circle class="qt-track" cx="65" cy="65" r="54"/>
@@ -230,18 +238,31 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
       ringStroke = ringColor(rem / s.durationSec);
       slot = `${minusBtn(rem)}<button class="qt-ctl" data-qt="pause" aria-label="一時停止">${ICON_PAUSE}</button>${plusBtn(rem)}`;
     }
+  } else if (phase === 'idle') {
+    // 待機中: リングとスキップは出さず、タイトルと秒数を次への待ちと同じ大きさで出す。
+    // 高さは実行中のカードと同じにする（実行中と同じ構造を透明な下敷きにして、その上に重ねる）
+    return `<div class="focus-card focus-card--idle" data-phase="idle" data-task-id="${task.id}">
+      ${runningBaseHtml(task, meta, seconds)}
+      <div class="cd-overlay">
+        <div class="cd-body">
+          <div class="cd-title">${escapeHtml(task.title)}<span class="cd-sec">（${seconds}秒）</span></div>
+          <div class="cd-meta">${escapeHtml(meta)}</div>
+          ${task.note ? `<div class="focus-note">${linkifyHtml(task.note)}</div>` : ''}
+        </div>
+        <div class="qt-actions">
+          <button class="btn btn-primary qt-main is-start" data-qt="start">${ICON_PLAY} はじめる</button>
+          <div class="qt-subrow"><span class="btn qt-small is-ghost">スキップ</span></div>
+        </div>
+      </div>
+    </div>`;
   } else if (phase === 'countdown') {
-    // 次への待ち: 待機中と同じ構造のカードを透明にして下敷きにし、その上に専用の表示を重ねる。
-    // こうするとフォントや行数に関係なく、カードの高さが待機中と必ず一致する
+    // 次への待ち: 待機中と同じ並び（タイトル、秒数、情報）の下にカウントダウンの数字を大きく出す。高さは実行中と同じ
     const cdMeta = [categoryName, DIFFICULTY_LABELS[task.difficulty], repeatLabel(task.repeat), dueText(task, status, now)]
       .filter(Boolean).join(' · ');
     const canSkip = !!task && canDeferTask(task, now); // 同じクエストにひとつ後ろの候補がなければ押せない（まとめ中はやることがないこともある）
     const left = Math.max(1, countdownRemainingSec(s));
     return `<div class="focus-card focus-card--countdown is-session" data-phase="countdown">
-      <div class="focus-title">${escapeHtml(task.title)}</div>
-      <div class="focus-meta">${escapeHtml(meta)}</div>
-      <div class="qt"><div class="qt-dial">${ringHtml(0)}<div class="qt-center"><div class="qt-seconds">${digitsHtml(s.durationSec)}</div><div class="qt-slot">${minusBtn(1)}<span class="qt-ctl">${ICON_PLAY}</span>${plusBtn(1)}</div></div></div></div>
-      <div class="qt-actions"><button class="btn btn-primary qt-main" disabled>${ICON_PLAY} はじめる</button><div class="qt-subrow"><button class="btn qt-small" disabled>スキップ</button></div></div>
+      ${runningBaseHtml(task, cdMeta, s.durationSec)}
       <div class="cd-overlay">
         <div class="cd-body">
           <div class="cd-title">${escapeHtml(task.title)}<span class="cd-sec">（${s.durationSec}秒）</span></div>
@@ -272,12 +293,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
   // ボタン
   let main;
   let sub;
-  if (phase === 'idle') {
-    main = `<button class="btn btn-primary qt-main is-start" data-qt="start">${ICON_PLAY} はじめる</button>`;
-    // 同じ日付にほかのクエストがなければ「あとで」は意味がないので押せない
-    const canDefer = canDeferTask(task, now); // 同じクエストにひとつ後ろの候補がなければ押せない
-    sub = `<button class="btn qt-small" data-defer="${task.id}" ${canDefer ? '' : 'disabled'}>スキップ</button>`;
-  } else {
+  {
     const canComplete = phase === 'running' || phase === 'paused';
     main = `<button class="btn btn-primary qt-main" data-qt="complete" ${canComplete ? '' : 'disabled'}><svg class="icon" aria-hidden="true"><use href="#i-check-box"/></svg> できた！</button>`;
     // 「× やめる」の右に「スキップ」（いまのやることをひとつ後ろに回し、入れ替わったやることで待ち直す）
@@ -289,7 +305,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
   const comboCircle = inSession && s.combo >= 2
     ? `<div class="qt-combo"><strong>${s.combo}</strong><small>コンボ</small></div>`
     : '';
-  return `<div class="focus-card ${comboCircle ? 'has-combo' : ''} ${phase === 'idle' ? 'is-editable' : ''} ${inSession ? 'is-session' : ''}" data-phase="${phase}" data-task-id="${task ? task.id : ''}">
+  return `<div class="focus-card ${comboCircle ? 'has-combo' : ''} ${inSession ? 'is-session' : ''}" data-phase="${phase}" data-task-id="${task ? task.id : ''}">
     <div class="focus-title">${task ? escapeHtml(task.title) : ''}</div>
     <div class="focus-meta">${escapeHtml(meta)}</div>
     ${task && task.note && phase === 'idle' ? `<div class="focus-note">${linkifyHtml(task.note)}</div>` : ''}
@@ -394,6 +410,7 @@ function sortDue(a, b) {
 
 function taskRow(entry, categoryName, now, mode, canDrag = false) {
   const { task, status } = entry;
+  const isFocus = mode === 'todo' && task.id === ui.focusTaskId;
   const cat = state.categories.find((a) => a.id === task.categoryId);
   const meta = [categoryName, DIFFICULTY_LABELS[task.difficulty], repeatLabel(task.repeat), dueText(task, status, now),
     isDeferredToday(task, now) ? 'スキップ済み' : '']
@@ -414,10 +431,10 @@ function taskRow(entry, categoryName, now, mode, canDrag = false) {
   const grip = mode === 'todo' && canDrag && !sessionActive() && !fixed
     ? '<span class="drag-grip" aria-label="押したまま動かして並べ替え" title="押したまま動かして並べ替え"><svg class="icon" aria-hidden="true"><use href="#i-grip"/></svg></span>'
     : '';
-  return `<li class="task-row ${fixed ? 'is-fixed' : ''}" data-status="${status}" data-id="${task.id}">
+  return `<li class="task-row ${fixed ? 'is-fixed' : ''} ${isFocus ? 'is-focus' : ''}" data-status="${status}" data-id="${task.id}">
     ${action}
     <button class="task-body" data-edit="${task.id}">
-      <span class="task-title">${escapeHtml(task.title)}</span>
+      <span class="task-title">${isFocus ? '<span class="task-focus-mark">いまやる</span>' : ''}${escapeHtml(task.title)}</span>
       <span class="task-meta">${escapeHtml(meta)}</span>
     </button>
     ${grip}
@@ -472,8 +489,8 @@ function renderQuests() {
 
   // 追加ボタンは常に出す（作業中は覆いの下になって押せない）
 
-  // 「ほかのやること」は「いまやる」と同じ規則で並べる（上から順に次に来る）
-  const others = orderTodo(todo.filter((e) => !focus || e.task.id !== focus.task.id), now);
+  // 「やること」の一覧は「いまやる」と同じ規則で並べ、いまやるも含めてクエスト内の並びをそのまま出す（先頭がいまやる）
+  const others = orderTodo(todo, now);
   if (others.length) {
     let body;
     if (byCategory) {
@@ -488,7 +505,7 @@ function renderQuests() {
       body = `<ul class="task-list" data-category="${ui.categoryFilter}">${others.map(row('todo', dragOk(others))).join('')}</ul>`;
     }
     html += `<details class="quest-section quest-details" data-section="todo" ${ui.sections.todo ? 'open' : ''}>
-      <summary class="quest-heading">ほかのやること <span class="count">${others.length}</span></summary>
+      <summary class="quest-heading">やること <span class="count">${others.length}</span></summary>
       ${body}
     </details>`;
   }
@@ -596,14 +613,11 @@ function showToast(message, kind = '') {
 
 // --- イベント ---------------------------------------------------------
 
-// 「ほかのやること」の並べ替え。一覧の順をそのクエストの手動順にする。
-// いまやるやることは動かさない（同じクエストなら常に先頭のまま）。いまやるを替えたいときは「スキップ」を使う
+// 「やること」の一覧の並べ替え。一覧にはいまやるも入っているので、一覧の順がそのままクエスト内の手動順になる
+// （先頭に置いたやることがいまやるになる）
 function reorderTasksFromList(row, ul) {
   const ids = [...ul.querySelectorAll('.task-row')].map((r) => r.dataset.id);
-  const categoryId = ul.dataset.category;
-  const focus = ui.focusTaskId ? state.tasks.find((t) => t.id === ui.focusTaskId) : null;
-  const seq = focus && focus.categoryId === categoryId ? [focus.id, ...ids] : ids;
-  assignOrders(seq.map((id) => state.tasks.find((t) => t.id === id)).filter(Boolean));
+  assignOrders(ids.map((id) => state.tasks.find((t) => t.id === id)).filter(Boolean));
   saveState();
 }
 
@@ -639,13 +653,6 @@ function initQuests() {
       else if (action === 'skip') skipQuest();
       return;
     }
-    const defer = e.target.closest('[data-defer]');
-    if (defer) {
-      if (sessionActive()) return;
-      deferTask(defer.dataset.defer);
-      render();
-      return;
-    }
     const undo = e.target.closest('[data-undo]');
     if (undo) {
       if (undoComplete(undo.dataset.undo)) {
@@ -660,10 +667,7 @@ function initQuests() {
       openTaskSheet(edit.dataset.edit);
       return;
     }
-    // 待機中のカードは、ボタン以外の場所をタップすると編集できる（一覧の行と同じ）
-    const card = e.target.closest('.focus-card[data-phase="idle"]');
-    if (e.target.closest('a')) return; // メモの中のリンクはそのまま開く（編集シートは出さない）
-    if (card && card.dataset.taskId && !e.target.closest('button')) openTaskSheet(card.dataset.taskId);
+    // いまやるカードのタップでは編集しない（編集は一覧の行から）
   };
   document.getElementById('quest-list').addEventListener('click', handleTaskAction);
   document.getElementById('focus-quests').addEventListener('click', handleTaskAction);

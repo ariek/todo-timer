@@ -299,6 +299,21 @@ button {
 .task-row[data-status="overdue"],
 .task-row[data-status="due"] { border-color: var(--ink); background: #fff6f2; }
 
+/* 一覧の中のいまやる（先頭）。札で示し、影を黄にする */
+.task-row.is-focus { box-shadow: 3px 3px 0 var(--yellow); }
+.task-focus-mark {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 1.6px solid var(--ink);
+  border-radius: 10px 12px 10px 12px / 12px 10px 12px 10px;
+  vertical-align: 2px;
+}
+
 .task-check {
   flex: none;
   width: 30px;
@@ -890,7 +905,7 @@ button.task-check:active { transform: scale(0.9); }
   text-align: center;
 }
 
-.focus-meta { margin-top: 4px; font-size: 13px; color: var(--ink-soft); text-align: center; }
+.focus-meta { margin-top: 4px; font-size: 13px; line-height: 19px; color: var(--ink-soft); text-align: center; } /* 行の高さを固定して、文字の種類で高さが変わらないようにする */
 
 .focus-note {
   margin-top: 8px;
@@ -1166,7 +1181,7 @@ button.task-check:active { transform: scale(0.9); }
 /* タイマーの数字は1桁ずつ同じ幅で並べる */
 .qt-seconds span { display: inline-block; width: 0.51em; text-align: center; }
 
-/* ほかのやること: クエストごとの見出し */
+/* やることの一覧: クエストごとの見出し */
 .quest-subheading {
   display: flex;
   align-items: center;
@@ -1193,9 +1208,12 @@ button.task-check:active { transform: scale(0.9); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* 次への待ちのカード: 待機中と同じ構造を透明な下敷きにして高さをそろえ、その上に専用の表示を重ねる */
-.focus-card--countdown { position: relative; }
-.focus-card--countdown > :not(.cd-overlay) { visibility: hidden; }
+/* 待機中と次への待ち: 実行中と同じ構造を透明な下敷きにして高さをそろえ、その上に専用の表示を重ねる */
+.focus-card--idle, .focus-card--countdown { position: relative; }
+.focus-card--idle > :not(.cd-overlay), .focus-card--countdown > :not(.cd-overlay) { visibility: hidden; }
 .cd-overlay { position: absolute; inset: 0; padding: 16px; /* カードの padding と合わせ、ボタンの位置をそろえる */ display: flex; flex-direction: column; text-align: center; }
+.cd-overlay .focus-note { width: 100%; margin-top: 10px; }
+.is-ghost { visibility: hidden; } /* 実行中の「× やめる / スキップ」の行と高さをそろえるための空の場所取り */
 .cd-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .cd-title { font-size: 36px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .cd-sec { display: block; margin-top: 4px; font-size: 24px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
@@ -1214,7 +1232,6 @@ button.task-check:active { transform: scale(0.9); }
 .qt-main[data-qt="complete"] .icon { --icon-fill-a: var(--paper); }
 
 /* 待機中のカードはタップで編集できる */
-.focus-card.is-editable { cursor: pointer; }
 
 /* クエスト（カテゴリー）の色付きアイコン */
 .cat-icon {
