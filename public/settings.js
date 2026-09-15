@@ -141,7 +141,7 @@ function openCategorySheet(categoryId = null) {
   document.getElementById('category-delete').hidden = !category;
   renderPickers();
   showSheet(document.getElementById('category-sheet'));
-  setTimeout(() => form.elements.name.focus(), 50);
+  setTimeout(() => form.elements.name.focus(), 320); // シートが上がりきってから
 }
 
 function closeCategorySheet() {
