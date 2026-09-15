@@ -50,7 +50,7 @@ function initOverview() {
     const open = e.target.closest('[data-open]');
     if (open) openTasks(open.dataset.open || null);
   });
-  document.getElementById('category-add-btn').addEventListener('click', () => openCategorySheet());
+  document.getElementById('category-add-btn').addEventListener('click', () => { if (!sheetJustClosed()) openCategorySheet(); });
   makeSortable(list, {
     row: '.category-row',
     grip: '.drag-grip',

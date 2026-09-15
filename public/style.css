@@ -420,7 +420,7 @@ button.task-check:active { transform: scale(0.9); }
 @keyframes sheet-backdrop-in { from { background-color: rgba(91, 74, 63, 0); } to { background-color: rgba(91, 74, 63, 0.35); } }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 /* 閉じるとき: シートが下へ下がり、板はその場で薄くなる */
-.sheet-backdrop.is-closing { animation: sheet-backdrop-out 0.22s ease-in forwards; pointer-events: none; }
+.sheet-backdrop.is-closing { animation: sheet-backdrop-out 0.22s ease-in forwards; } /* 閉じている間も板でタップを受け止め、下の「＋」に届かないようにする */
 .sheet-backdrop.is-closing .sheet { animation: sheet-down 0.24s cubic-bezier(0.6, 0, 0.8, 0.4) forwards; }
 @keyframes sheet-backdrop-out { from { background-color: rgba(91, 74, 63, 0.35); } to { background-color: rgba(91, 74, 63, 0); } }
 @keyframes sheet-down { from { transform: translateY(0); } to { transform: translateY(100%); } }
