@@ -217,10 +217,11 @@
         <button class="btn btn-danger" id="reset-all">すべてのデータを削除</button>
       </section>
     </section>
+    <!-- 右下の追加ボタン。横に動く view の外、かつ本文（.main）の中に置く。
+         iOS では .main が重なり順の入れ物になるので、やること画面の下に潜らせるには同じ入れ物の中にいる必要がある -->
+    <button class="fab" id="category-add-btn" aria-label="クエストを追加" title="クエストを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button class="fab" id="add-task-btn" aria-label="やることを追加" title="やることを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
   </main>
-  <!-- 右下の追加ボタン。画面（.main の中の view）が横に動いても位置が変わらないよう、本文の外に置く -->
-  <button class="fab" id="category-add-btn" aria-label="クエストを追加" title="クエストを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
-  <button class="fab" id="add-task-btn" aria-label="やることを追加" title="やることを追加"><svg class="icon fab-svg" aria-hidden="true"><use href="#i-plus"/></svg></button>
 
   <div class="sheet-backdrop" id="task-sheet" hidden>
     <form class="sheet" id="task-form" autocomplete="off">
