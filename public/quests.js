@@ -375,7 +375,7 @@ function dueText(task, status, now) {
     return d === 0 ? '今日まで' : `${d}日遅れ`;
   }
   if (status === 'due') {
-    if (!task.dueAt) return 'まだ一度も';
+    if (!task.dueAt) return '初回';
     const d = daysBetween(task.dueAt, now);
     return d === 0 ? '今日' : `${d}日遅れ`;
   }

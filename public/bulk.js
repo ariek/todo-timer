@@ -214,7 +214,7 @@ function renderBulkPreview(plan) {
   parts.push(`<p><strong>やること ${plan.entries.length} 件</strong>${categoryLines ? `: ${categoryLines}` : ''}</p>`);
   if (plan.truncated) parts.push(`<p class="bulk-skip">切り詰め: ${BULK_TITLE_MAX}文字に短くした行 ${plan.truncated}</p>`);
   const skips = [];
-  if (plan.skipped.empty) skips.push(`タイトルなし ${plan.skipped.empty}`);
+  if (plan.skipped.empty) skips.push(`やることが空 ${plan.skipped.empty}`);
   if (plan.skipped.badDeadline) skips.push(`日付が読めない ${plan.skipped.badDeadline}`);
   if (plan.skipped.badDifficulty) skips.push(`難易度が読めない ${plan.skipped.badDifficulty}`);
   if (plan.skipped.duplicate) skips.push(`重複 ${plan.skipped.duplicate}`);

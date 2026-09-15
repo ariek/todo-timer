@@ -278,7 +278,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.18.2';
+const APP_VERSION = 'v0.18.3';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -299,7 +299,7 @@ function registerServiceWorker() {
         // update() は新しい版の取り込み（installing）が始まった時点で戻るので、入り終わるまで待ってから判断する
         if (reg.installing) await waitInstalled(reg.installing);
         if (reg.waiting) offerUpdate(reg.waiting);
-        else showToast('最新の版です');
+        else showToast('最新版です');
       } catch (err) {
         showToast('確認できませんでした。オフラインかもしれません');
       }
