@@ -304,11 +304,18 @@ function showSheet(backdrop) {
   backdrop.classList.remove('is-closing');
   backdrop.hidden = false;
 }
+let lastSheetClosedAt = 0;
 function hideSheet(backdrop) {
   if (backdrop.hidden) return;
+  lastSheetClosedAt = Date.now();
   if (typeof reducedMotion === 'function' && reducedMotion()) { backdrop.hidden = true; return; }
   backdrop.classList.add('is-closing');
   sheetCloseTimers.set(backdrop, setTimeout(() => { backdrop.classList.remove('is-closing'); backdrop.hidden = true; }, 240));
+}
+
+// シートを閉じた直後のクリックは、指の下にあった「＋」などに届いたものなので無視する
+function sheetJustClosed() {
+  return Date.now() - lastSheetClosedAt < 400;
 }
 
 function saveScreen() {
@@ -343,7 +350,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.21.0';
+const APP_VERSION = 'v0.21.1';
 let waitingWorker = null;
 
 function registerServiceWorker() {

@@ -672,7 +672,7 @@ function initQuests() {
   document.getElementById('quest-list').addEventListener('click', handleTaskAction);
   document.getElementById('focus-quests').addEventListener('click', handleTaskAction);
 
-  document.getElementById('add-task-btn').addEventListener('click', () => { if (!sessionActive()) openTaskSheet(); });
+  document.getElementById('add-task-btn').addEventListener('click', () => { if (!sessionActive() && !sheetJustClosed()) openTaskSheet(); });
 
   const sheet = document.getElementById('task-sheet');
   sheet.addEventListener('click', (e) => { if (e.target === sheet) closeTaskSheet(); });
