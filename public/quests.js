@@ -292,7 +292,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
   return `<div class="focus-card ${comboCircle ? 'has-combo' : ''} ${phase === 'idle' ? 'is-editable' : ''} ${inSession ? 'is-session' : ''}" data-phase="${phase}" data-task-id="${task ? task.id : ''}">
     <div class="focus-title">${task ? escapeHtml(task.title) : ''}</div>
     <div class="focus-meta">${escapeHtml(meta)}</div>
-    ${task && task.note && phase === 'idle' ? `<div class="focus-note">${escapeHtml(task.note)}</div>` : ''}
+    ${task && task.note && phase === 'idle' ? `<div class="focus-note">${linkifyHtml(task.note)}</div>` : ''}
     <div class="qt ${qtCls}">
       <div class="qt-dial">
         ${ringHtml(offset, ringStroke)}
@@ -662,6 +662,7 @@ function initQuests() {
     }
     // 待機中のカードは、ボタン以外の場所をタップすると編集できる（一覧の行と同じ）
     const card = e.target.closest('.focus-card[data-phase="idle"]');
+    if (e.target.closest('a')) return; // メモの中のリンクはそのまま開く（編集シートは出さない）
     if (card && card.dataset.taskId && !e.target.closest('button')) openTaskSheet(card.dataset.taskId);
   };
   document.getElementById('quest-list').addEventListener('click', handleTaskAction);

@@ -26,7 +26,7 @@ src = '\n'.join(open(f, encoding='utf-8').read() for f in glob.glob('public/*.js
 defined = set(m.group(1) for m in re.finditer(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(', src))
 required = [
     'init', 'render', 'switchTab', 'saveState', 'loadState', 'migrate', 'sampleState', 'newId', 'escapeHtml', 'iconHtml',
-    'measureInsets', 'registerServiceWorker', 'renderSessionModals', 'renderHeader', 'renderOverview', 'initOverview', 'openTasks', 'showCategoryList', 'saveScreen', 'loadScreen', 'categoryIconHtml', 'categoryColorHex', 'categoryIconId', 'injectCategoryIcons', 'renderPickers', 'nextFreeColor',
+    'measureInsets', 'registerServiceWorker', 'renderSessionModals', 'renderHeader', 'linkifyHtml', 'renderOverview', 'initOverview', 'openTasks', 'showCategoryList', 'saveScreen', 'loadScreen', 'categoryIconHtml', 'categoryColorHex', 'categoryIconId', 'injectCategoryIcons', 'renderPickers', 'nextFreeColor',
     'initQuests', 'renderQuests', 'renderFocusCard', 'emptyFocusHtml', 'pickFocus', 'sortFocusOrder', 'orderTodo', 'reorderTasksFromList', 'nextTaskOrder', 'taskOrder', 'isPastDue', 'isPinned', 'categorySequence', 'canDeferTask', 'deferTask', 'assignOrders', 'completeTask', 'undoComplete',
     'upsertTask', 'deleteTask', 'deferTask', 'addRegisterXp', 'removeRegisterXp', 'openTaskSheet', 'closeTaskSheet', 'showToast', 'comboBadge',
     'initTimer', 'initSession', 'startSession', 'beginQuest', 'pauseQuest', 'resumeQuest', 'completeQuest', 'quitSession', 'endSession',
