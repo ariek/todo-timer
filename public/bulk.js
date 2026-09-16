@@ -1,8 +1,9 @@
-// クエスト・やることの一括追加: 貼り付けた文字列を解釈し、内訳を出してから登録する
+// クエスト・やることの一括追加: 貼り付けた文字列を解釈して登録する（画面は「クエストを追加」「やることを追加」のシートの「まとめて」）
 
 const BULK_DEFAULT_CATEGORY = 'なんでも';
 const BULK_TITLE_MAX = 60;
 const BULK_NOTE_MAX = 200;
+const CATEGORY_NAME_MAX = 20; // クエスト名の長さ（シートの入力欄と同じ）
 
 // 行頭の箇条書き記号を外す
 const BULLET_RE = /^(?:[-*・•□■◇◆○●]|\[\s?[xX ]?\]|\d+[.．)）]|[①-⑳])\s*/;
@@ -51,8 +52,10 @@ function parseDeadline(str, now = new Date()) {
 }
 
 // 文字列を解釈して「登録の計画」を返す。まだ状態は変えない。
-// fixedCategory を渡すと、すべての行をそのクエストに入れ、行は「やること：日付：難易度：メモ」として読む（追加シートの「まとめて」）
-function parseBulkText(text, categories, tasks, fixedCategory = null) {
+// opts.fixedCategory: すべての行をそのクエストに入れ、行は「やること：日付：難易度：メモ」として読む（やることの追加の「まとめて」）
+// opts.bareIsCategory: 区切りのない行はクエスト名として、そのクエストだけを作る（クエストの追加の「まとめて」）
+function parseBulkText(text, categories, tasks, opts = {}) {
+  const fixedCategory = opts.fixedCategory || null;
   const categoryByName = new Map(sortedCategories().map((a) => [a.name, a]));
   // 新しいクエストの色は、まだ使われていない色からランダムに選ぶ（使い切ったら全色から）
   const usedColors = new Set(state.categories.map((a) => a.color));
@@ -92,6 +95,12 @@ function parseBulkText(text, categories, tasks, fixedCategory = null) {
 
     // クエスト：タイトル：期限：難易度：メモ（区切りは ：, :, タブ。メモの中の区切りはそのまま残す）
     const rawParts = line.split(SEPARATOR_RE).map(bulkTrim);
+    if (opts.bareIsCategory && rawParts.length === 1) {
+      // クエスト名だけの行: そのクエストを作る（あれば何もしない）
+      if (rawParts[0].length > CATEGORY_NAME_MAX) rawParts[0] = rawParts[0].slice(0, CATEGORY_NAME_MAX);
+      resolveCategory(rawParts[0]);
+      continue;
+    }
     // クエスト固定のときは、先頭にクエスト名があるものとして同じ規則で読む
     const parts = fixedCategory ? [fixedCategory.name, ...rawParts] : rawParts;
     let categoryName = BULK_DEFAULT_CATEGORY;
@@ -141,8 +150,6 @@ function parseBulkText(text, categories, tasks, fixedCategory = null) {
   return { newCategories, entries, skipped, perCategory, truncated };
 }
 
-let lastBulk = null; // 取り消し用
-
 function applyBulkPlan(plan) {
   const now = new Date().toISOString();
   const createdCategoryIds = [];
@@ -179,106 +186,5 @@ function applyBulkPlan(plan) {
     addRegisterXp();
   }
   saveState();
-  lastBulk = { createdCategoryIds, createdTaskIds };
   return { categories: createdCategoryIds.length, tasks: createdTaskIds.length };
-}
-
-function undoBulk() {
-  if (!lastBulk) return false;
-  const taskIds = new Set(lastBulk.createdTaskIds);
-  const before = state.tasks.length;
-  state.tasks = state.tasks.filter((t) => !taskIds.has(t.id));
-  const removed = before - state.tasks.length;
-  if (removed > 0) removeRegisterXp(removed);
-  // 今回作ったクエストは、ほかにやることが残っていなければ消す
-  for (const categoryId of lastBulk.createdCategoryIds) {
-    if (!state.tasks.some((t) => t.categoryId === categoryId)) {
-      state.categories = state.categories.filter((a) => a.id !== categoryId);
-      if (ui.categoryFilter === categoryId) ui.categoryFilter = null;
-    }
-  }
-  sortedCategories().forEach((a, i) => { a.order = i; });
-  lastBulk = null;
-  saveState();
-  return true;
-}
-
-// --- 画面 -------------------------------------------------------------
-
-let bulkPlan = null;
-
-function renderBulkPreview(plan) {
-  const box = document.getElementById('bulk-result');
-  const parts = [];
-  if (plan.newCategories.length) {
-    parts.push(`<p><strong>新しいクエスト ${plan.newCategories.length} 件</strong>: ${plan.newCategories.map((a) => escapeHtml(a.name)).join('、')}</p>`);
-  }
-  const categoryLines = Object.entries(plan.perCategory).map(([name, n]) => `${escapeHtml(name)} ${n}`).join('、');
-  parts.push(`<p><strong>やること ${plan.entries.length} 件</strong>${categoryLines ? `: ${categoryLines}` : ''}</p>`);
-  if (plan.truncated) parts.push(`<p class="bulk-skip">切り詰め: ${BULK_TITLE_MAX}文字に短くした行 ${plan.truncated}</p>`);
-  const skips = [];
-  if (plan.skipped.empty) skips.push(`やることが空 ${plan.skipped.empty}`);
-  if (plan.skipped.badDeadline) skips.push(`日付が読めない ${plan.skipped.badDeadline}`);
-  if (plan.skipped.badDifficulty) skips.push(`難易度が読めない ${plan.skipped.badDifficulty}`);
-  if (plan.skipped.duplicate) skips.push(`重複 ${plan.skipped.duplicate}`);
-  if (skips.length) parts.push(`<p class="bulk-skip">読み飛ばし: ${skips.join('、')}</p>`);
-  const canApply = plan.entries.length > 0;
-  parts.push(`<div class="btn-row">
-    <button class="btn btn-primary" id="bulk-apply" ${canApply ? '' : 'disabled'}>登録する</button>
-    <button class="btn" id="bulk-cancel">やめる</button>
-  </div>`);
-  box.innerHTML = parts.join('');
-  box.hidden = false;
-}
-
-function renderBulkDone(result) {
-  const box = document.getElementById('bulk-result');
-  box.innerHTML = `<p><strong>${result.tasks} 件を登録しました</strong>（+${result.tasks} XP${result.categories ? `、クエスト ${result.categories} 件を追加` : ''}）</p>
-    <div class="btn-row"><button class="btn" id="bulk-undo">取り消す</button></div>`;
-  box.hidden = false;
-}
-
-function clearBulkResult() {
-  const box = document.getElementById('bulk-result');
-  box.hidden = true;
-  box.innerHTML = '';
-  bulkPlan = null;
-}
-
-function initBulk() {
-  const textarea = document.getElementById('bulk-text');
-  const box = document.getElementById('bulk-result');
-
-  document.getElementById('bulk-parse').addEventListener('click', () => {
-    const text = textarea.value;
-    if (!bulkTrim(text)) { showToast('1行に1つずつ貼り付けてください'); return; }
-    lastBulk = null;
-    bulkPlan = parseBulkText(text, state.categories, state.tasks);
-    renderBulkPreview(bulkPlan);
-  });
-
-  box.addEventListener('click', (e) => {
-    if (e.target.closest('#bulk-cancel')) { clearBulkResult(); return; }
-    if (e.target.closest('#bulk-apply') && bulkPlan) {
-      const result = applyBulkPlan(bulkPlan);
-      bulkPlan = null;
-      textarea.value = '';
-      render();
-      renderBulkDone(result);
-      const at = centerOf(document.getElementById('bulk-parse'));
-      floatText(at.x, at.y, `+${result.tasks} XP`, false, true);
-      setTimeout(pulseXpBar, 250);
-      return;
-    }
-    if (e.target.closest('#bulk-undo')) {
-      if (undoBulk()) {
-        clearBulkResult();
-        render();
-        showToast('取り消しました');
-      }
-    }
-  });
-
-  // 次の操作をしたら取り消しは無効にする
-  textarea.addEventListener('input', () => { if (lastBulk) { lastBulk = null; clearBulkResult(); } });
 }

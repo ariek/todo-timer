@@ -726,7 +726,7 @@ function submitBulkTasks(form) {
   const category = state.categories.find((c) => c.id === form.elements.categoryId.value);
   if (!bulkTrim(text)) { form.elements.bulk.focus(); showToast('1行に1つずつ入力してください'); return; }
   if (!category) { showToast('先にクエスト一覧でクエストを作ってください'); return; }
-  const plan = parseBulkText(text, state.categories, state.tasks, category);
+  const plan = parseBulkText(text, state.categories, state.tasks, { fixedCategory: category });
   const skipped = Object.values(plan.skipped).reduce((a, b) => a + b, 0);
   if (!plan.entries.length) {
     form.elements.bulk.focus();
@@ -735,7 +735,6 @@ function submitBulkTasks(form) {
   }
   const at = centerOf(form.querySelector('button[type="submit"]'));
   const result = applyBulkPlan(plan);
-  lastBulk = null; // 設定画面の「取り消す」とは別なので、そちらの取り消し対象にはしない
   closeTaskSheet();
   render();
   floatText(at.x, at.y, `+${result.tasks} XP`, false, true);

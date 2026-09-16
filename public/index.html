@@ -194,19 +194,10 @@
     <div class="page-body">
     <section class="view" id="view-settings" data-view="settings">
       <section class="settings-section">
-        <h2 class="settings-heading">クエスト・やることの一括追加</h2>
-        <p class="settings-help">1行に1つ、「クエスト：やること：日付：難易度：メモ」の形で貼り付けてください。区切りは「：」かタブ。日付以降は省略できます（日付は 9/20 や 明日、難易度は 1〜3 か ★）。クエストがない行は「なんでも」に入り、ないクエストは自動で作られます。</p>
-        <textarea class="json-category bulk-category" id="bulk-text" rows="6" placeholder="仕事：経費精算を出す：9/20：2&#10;家事：洗濯物をたたむ&#10;：牛乳を買う：明日&#10;勉強：参考書を1章読む：：3：付箋を貼りながら" spellcheck="false"></textarea>
-        <div class="btn-row">
-          <button class="btn btn-primary" id="bulk-parse">読み込む</button>
-        </div>
-        <div class="bulk-result" id="bulk-result" hidden></div>
-      </section>
-
-      <section class="settings-section" id="sample-section" hidden>
-        <h2 class="settings-heading">サンプルデータ</h2>
-        <p class="settings-help">いま入っているやることはサンプルです。自分のやることに合わせて登録し直すときに使ってください。</p>
-        <button class="btn btn-danger" id="sample-clear">サンプルを消して自分で登録する</button>
+        <h2 class="settings-heading">アプリ</h2>
+        <p class="settings-help" id="app-version"></p>
+        <p class="settings-help">ホーム画面に追加すると、アプリのように全画面で開けます。iPhone は共有メニューの「ホーム画面に追加」、Android はブラウザのメニューの「アプリをインストール」から。</p>
+        <button class="btn" id="app-update">更新を確認</button>
       </section>
 
       <section class="settings-section">
@@ -232,16 +223,10 @@
         </div>
       </section>
 
-      <section class="settings-section">
-        <h2 class="settings-heading">アプリ</h2>
-        <p class="settings-help" id="app-version"></p>
-        <p class="settings-help">ホーム画面に追加すると、アプリのように全画面で開けます。iPhone は共有メニューの「ホーム画面に追加」、Android はブラウザのメニューの「アプリをインストール」から。</p>
-        <button class="btn" id="app-update">更新を確認</button>
-      </section>
 
       <section class="settings-section">
         <h2 class="settings-heading">初期化</h2>
-        <p class="settings-help">クエストも含めてすべてのデータを削除します。</p>
+        <p class="settings-help">クエストも含めてすべてのデータを削除します。最初に入っているサンプルを消して自分で登録し直すときもここから。</p>
         <button class="btn btn-danger" id="reset-all">すべてのデータを削除</button>
       </section>
     </section>
@@ -314,18 +299,28 @@
       <input type="hidden" name="id">
       <input type="hidden" name="color">
       <input type="hidden" name="icon">
-      <label class="field">
+      <!-- 追加のときだけ: ひとつずつ（名前・色・アイコン）か、まとめて（クエストとやることを1行に1つ貼り付け）か -->
+      <div class="seg seg--mode" id="category-mode-wrap" role="radiogroup" aria-label="追加のしかた">
+        <label class="seg-item"><input type="radio" name="mode" value="single" checked><span>ひとつずつ</span></label>
+        <label class="seg-item"><input type="radio" name="mode" value="bulk"><span>まとめて</span></label>
+      </div>
+      <label class="field cat-single">
         <span class="field-label">名前</span>
         <input type="text" name="name" maxlength="20" placeholder="例: 仕事">
       </label>
-      <div class="field">
+      <div class="field cat-single">
         <span class="field-label">色</span>
         <div class="color-picker" id="color-picker"></div>
       </div>
-      <div class="field">
+      <div class="field cat-single">
         <span class="field-label">アイコン</span>
         <div class="icon-picker" id="icon-picker"></div>
       </div>
+      <label class="field cat-bulk" hidden>
+        <span class="field-label">クエストとやること（1行に1つ）</span>
+        <textarea name="bulk" rows="7" placeholder="仕事&#10;仕事：経費精算を出す：9/20：2&#10;家事：洗濯物をたたむ&#10;：牛乳を買う：明日&#10;勉強：参考書を1章読む：：3：付箋を貼りながら"></textarea>
+        <span class="field-hint">「クエスト：やること：日付：難易度：メモ」の形で書きます。区切りは「：」かタブ。クエスト名だけの行はそのクエストを作ります。ないクエストは自動で作られ、クエストが空の行は「なんでも」に入ります</span>
+      </label>
       <div class="sheet-actions">
         <button type="button" class="btn btn-danger" id="category-delete" hidden>削除</button>
         <span class="spacer"></span>
