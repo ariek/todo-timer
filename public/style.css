@@ -146,20 +146,6 @@ button {
   width: 0%;
   background: var(--gauge);
   transition: width 0.5s ease;
-  overflow: hidden;
-}
-/* 次のレベルまであと少し（9割以上）のとき、ゲージの端がときどききらっと光る */
-.lv-gauge-fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%);
-  transform: translateX(-100%);
-}
-.lv-gauge.is-near-full .lv-gauge-fill::after { animation: gauge-shine 2.8s ease-in-out infinite; }
-@keyframes gauge-shine {
-  0% { transform: translateX(-100%); }
-  45%, 100% { transform: translateX(100%); }
 }
 
 .lv-gauge-text { position: relative; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -1161,7 +1147,7 @@ button.task-check:active { transform: scale(0.9); }
 
 @media (prefers-reduced-motion: reduce) {
   .modal, .clear-card, .lv-gauge.is-gaining, .clear-num.is-boing { animation: none; }
-  .task-row.is-entering, .task-row.is-dropped, .category-row.is-dropped, .qt.is-paused .qt-fill, .qt.is-shake, #focus-quests.is-bump, .note-card.is-growing, .lv-gauge.is-near-full .lv-gauge-fill::after { animation: none; }
+  .task-row.is-entering, .task-row.is-dropped, .category-row.is-dropped, .qt.is-paused .qt-fill, .qt.is-shake, #focus-quests.is-bump, .note-card.is-growing { animation: none; }
   .quest-details > :not(summary), .task-row.is-leaving { transition: none; }
 }
 

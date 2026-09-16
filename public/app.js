@@ -165,7 +165,6 @@ function renderHeader() {
   const info = levelInfo(state.player.xp);
   document.getElementById('level-badge').textContent = `Lv.${info.level} ${titleForLevel(info.level)}`;
   document.getElementById('xp-fill').style.width = `${Math.round((info.xpInLevel / info.xpToNext) * 100)}%`;
-  document.getElementById('level-gauge').classList.toggle('is-near-full', info.xpInLevel / info.xpToNext >= 0.9); // あと少しで光る
   document.getElementById('xp-now').textContent = String(info.xpInLevel);
   document.getElementById('xp-next').textContent = `/ ${info.xpToNext}`;
 }
@@ -345,7 +344,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.22.0';
+const APP_VERSION = 'v0.22.1';
 let waitingWorker = null;
 
 function registerServiceWorker() {
