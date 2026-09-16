@@ -42,6 +42,22 @@ function completeTask(taskId, award, now = new Date()) {
 }
 
 // 当日分の完了だけ取り消せる
+// クエストクリアのボーナス: そのクエストの今日の分（やること）が全部終わった瞬間に、今日そのクエストでやり遂げた件数 × 10。
+// 同じクエストで1日1回だけ（category.clearedAt の日付で判定）。まだ残りがある、または今日すでに付けたなら null
+const QUEST_CLEAR_XP_PER_TASK = 10;
+function questClearBonus(categoryId, now = new Date()) {
+  const category = state.categories.find((c) => c.id === categoryId);
+  if (!category) return null;
+  const today = dateKey(now);
+  if (category.clearedAt && dateKey(category.clearedAt) === today) return null;
+  const remaining = state.tasks.some((t) => t.categoryId === categoryId && ['overdue', 'due', 'todo'].includes(taskStatus(t, now)));
+  if (remaining) return null;
+  const doneIds = new Set(state.logs.filter((l) => dateKey(l.doneAt) === today).map((l) => l.taskId));
+  const count = state.tasks.filter((t) => t.categoryId === categoryId && doneIds.has(t.id)).length;
+  if (!count) return null;
+  return { count, xp: count * QUEST_CLEAR_XP_PER_TASK, name: category.name };
+}
+
 function undoComplete(taskId, now = new Date()) {
   const today = dateKey(now);
   for (let i = state.logs.length - 1; i >= 0; i--) {
@@ -52,6 +68,11 @@ function undoComplete(taskId, now = new Date()) {
       task.done = log.prev.done;
       task.lastDoneAt = log.prev.lastDoneAt;
       task.dueAt = log.prev.dueAt;
+    }
+    // クエストクリアのボーナスが付いた完了を取り消したら、もう一度やり終えたときにまた付けられるようにする
+    if (log.questBonusXp && task) {
+      const category = state.categories.find((c) => c.id === task.categoryId);
+      if (category) category.clearedAt = null;
     }
     state.player.xp = Math.max(0, state.player.xp - log.xp);
     state.logs.splice(i, 1);

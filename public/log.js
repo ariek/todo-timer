@@ -141,7 +141,7 @@ function renderLog() {
           <span class="log-title">${escapeHtml(titleOf(log))}</span>
           <span class="log-meta">${escapeHtml(categoryOf(log))}${log.combo >= 1 ? ` · ${iconHtml('i-flame', 'icon icon-flame')}${log.combo}コンボ` : ''}</span>
         </span>
-        <span class="log-xp">+${log.xp}${log.bonusXp > 0 ? `<small>（+${log.bonusXp}）</small>` : ''}</span>
+        <span class="log-xp">+${log.xp}${(log.bonusXp || 0) + (log.questBonusXp || 0) > 0 ? `<small>（+${(log.bonusXp || 0) + (log.questBonusXp || 0)}）</small>` : ''}</span>
       </li>`;
     }).join('')
     : '<li class="quest-empty">この日の記録はありません</li>';

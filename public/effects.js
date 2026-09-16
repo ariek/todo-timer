@@ -101,6 +101,7 @@ function clearRowCount(data) {
     n += 1;
     if (data.combo >= 2) n += 1;
   }
+  if (data.questBonusXp > 0) n += 1;
   return n;
 }
 
@@ -125,6 +126,7 @@ function showClearModal(data) {
     rows.push({ label: 'ボーナス', note: `残り ${data.remainingSec}秒`, value: base, cls: 'is-bonus' });
     if (data.combo >= 2) rows.push({ label: 'コンボ', note: `${data.combo}コンボ`, value: comboPart, cls: 'is-bonus' });
   }
+  if (data.questBonusXp > 0) rows.push({ label: 'クエストクリア', note: `${data.questName} ${data.questDoneCount}件`, value: data.questBonusXp, cls: 'is-quest' });
   rowsEl.innerHTML = rows.map((r) => `<div class="clear-row ${r.cls} is-hidden"><span>${r.label} <small>${escapeHtml(r.note)}</small></span><strong>+0</strong></div>`).join('');
   const num = document.getElementById('clear-num');
   num.textContent = '0';
