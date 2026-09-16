@@ -348,7 +348,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.23.0';
+const APP_VERSION = 'v0.23.1';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -442,11 +442,25 @@ const slide = {
     [this.taskFab(), this.catFab()].forEach((b) => { b.classList.remove('is-settling', 'is-under'); b.style.transform = ''; });
     updateFabs();
   },
-  // いまの位置から dx へ 0.2 秒で動かし、終わったら片付ける
+  // いまの位置から dx へ 0.2 秒で動かし、動き終わってから片付ける。
+  // 時間で切ると、動き出しが遅れたときに最後を切ってしまい「カクッ」と止まるので、transitionend を待つ（保険で 0.5 秒後には必ず片付ける）
   settle(dx, done) {
-    [this.quests(), this.cats(), this.taskFab(), this.catFab()].forEach((el) => el.classList.add('is-settling'));
+    const quests = this.quests();
+    [quests, this.cats(), this.taskFab(), this.catFab()].forEach((el) => el.classList.add('is-settling'));
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      quests.removeEventListener('transitionend', onEnd);
+      this.cleanup();
+      if (done) done();
+    };
+    const onEnd = (e) => { if (e.target === quests && e.propertyName === 'transform') finish(); };
+    quests.addEventListener('transitionend', onEnd);
+    const before = quests.style.transform;
     this.apply(dx);
-    setTimeout(() => { this.cleanup(); if (done) done(); }, 220);
+    if (quests.style.transform === before) { finish(); return; } // 動かないなら待たずに片付ける
+    setTimeout(finish, 500);
   },
 };
 
