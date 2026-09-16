@@ -214,16 +214,32 @@ function completeQuest() {
 
   completeTask(task.id, { xp: baseXp + bonusXp, baseXp, bonusXp, combo, durationSec: s.durationSec, remainingSec: remainingForBonus });
 
+  // クエストクリアのボーナス: これでそのクエストの今日の分が全部終わったら、件数 × 10 を同じ記録に足す
+  const quest = questClearBonus(task.categoryId);
+  if (quest) {
+    const category = state.categories.find((c) => c.id === task.categoryId);
+    category.clearedAt = nowIso();
+    const log = state.logs[state.logs.length - 1];
+    log.xp += quest.xp;
+    log.questBonusXp = quest.xp;
+    log.questDoneCount = quest.count;
+    state.player.xp += quest.xp;
+  }
+  const questXp = quest ? quest.xp : 0;
+
   const after = levelInfo(state.player.xp).level;
   s.combo = combo;
   s.maxCombo = Math.max(s.maxCombo, combo);
   s.completed += 1;
-  s.xp += baseXp + bonusXp;
+  s.xp += baseXp + bonusXp + questXp;
   s.lastClear = {
     title: task.title,
     difficulty: task.difficulty,
     baseXp,
     bonusXp,
+    questBonusXp: questXp,
+    questDoneCount: quest ? quest.count : 0,
+    questName: quest ? quest.name : '',
     combo,
     remainingSec: remainingForBonus,
     shownRemainingSec: remaining, // 完了演出の裏のリングに出す実際の残り秒数

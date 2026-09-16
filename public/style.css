@@ -1244,6 +1244,7 @@ button.task-check:active { transform: scale(0.9); }
 .clear-row small { color: var(--ink-soft); font-size: 11px; margin-left: 6px; }
 .clear-row strong { font-size: 18px; font-variant-numeric: tabular-nums; }
 .clear-row.is-bonus { border-color: var(--yellow); background: #fffae6; }
+.clear-row.is-quest { border-color: var(--mint); background: #eefaf3; } /* クエストクリアのボーナス */
 .clear-row.is-hidden, .clear-combo.is-hidden, .clear-levelup.is-hidden { opacity: 0; transform: translateY(6px); }
 .clear-total { position: relative; margin-top: 14px; padding: 14px 0 8px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
 /* 数字の後ろに黄色い光のにじみ */
