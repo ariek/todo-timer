@@ -182,6 +182,11 @@ function ringHtml(offset, color = null) {
     </g></svg>`;
 }
 
+// メモがあるやることには、クエスト・難易度などの行の後ろにメモ紙のアイコンを出す。押すとメモをモーダルで見る
+function noteBtn(task) {
+  return task && task.note ? `<button type="button" class="note-btn" data-qt="note" aria-label="メモを見る" title="メモ"><svg class="icon" aria-hidden="true"><use href="#i-note"/></svg></button>` : '';
+}
+
 function comboBadge(combo) {
   const zero = combo <= 0;
   return `<span class="focus-combo ${zero ? 'is-zero' : ''}"><svg class="icon icon-flame ${zero ? 'icon-off' : ''}" aria-hidden="true"><use href="#i-flame"/></svg>${combo}コンボ</span>`;
@@ -246,8 +251,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
       <div class="cd-overlay">
         <div class="cd-body">
           <div class="cd-title">${escapeHtml(task.title)}<span class="cd-sec">（${seconds}秒）</span></div>
-          <div class="cd-meta">${escapeHtml(meta)}</div>
-          ${task.note ? `<div class="focus-note">${linkifyHtml(task.note)}</div>` : ''}
+          <div class="cd-meta">${escapeHtml(meta)}${noteBtn(task)}</div>
         </div>
         <div class="qt-actions">
           <button class="btn btn-primary qt-main is-start" data-qt="start">${ICON_PLAY} はじめる</button>
@@ -261,12 +265,12 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
       .filter(Boolean).join(' · ');
     const canSkip = !!task && canDeferTask(task, now); // 同じクエストにひとつ後ろの候補がなければ押せない（まとめ中はやることがないこともある）
     const left = Math.max(1, countdownRemainingSec(s));
-    return `<div class="focus-card focus-card--countdown is-session" data-phase="countdown">
+    return `<div class="focus-card focus-card--countdown is-session" data-phase="countdown" data-task-id="${task.id}">
       ${runningBaseHtml(task, cdMeta, s.durationSec)}
       <div class="cd-overlay">
         <div class="cd-body">
           <div class="cd-title">${escapeHtml(task.title)}<span class="cd-sec">（${s.durationSec}秒）</span></div>
-          <div class="cd-meta">${escapeHtml(cdMeta)}</div>
+          <div class="cd-meta">${escapeHtml(cdMeta)}${noteBtn(task)}</div>
           <div class="cd-num is-pop" data-value="${left}">${left}</div>
         </div>
         <div class="qt-actions">
@@ -307,8 +311,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
     : '';
   return `<div class="focus-card ${comboCircle ? 'has-combo' : ''} ${inSession ? 'is-session' : ''}" data-phase="${phase}" data-task-id="${task ? task.id : ''}">
     <div class="focus-title">${task ? escapeHtml(task.title) : ''}</div>
-    <div class="focus-meta">${escapeHtml(meta)}</div>
-    ${task && task.note && phase === 'idle' ? `<div class="focus-note">${linkifyHtml(task.note)}</div>` : ''}
+    <div class="focus-meta">${escapeHtml(meta)}${noteBtn(task)}</div>
     <div class="qt ${qtCls}">
       <div class="qt-dial">
         ${ringHtml(offset, ringStroke)}
@@ -482,10 +485,15 @@ function renderQuests() {
   ui.focusTaskId = focus ? focus.task.id : null;
   // 作業中（次への待ち〜完了演出）はカード以外を覆って操作できなくする。まとめの間は外す
   const shade = document.getElementById('session-shade');
+  const headerShade = document.getElementById('header-shade'); // ヘッダーは別の覆いで隠す（iOS 対策）
   const shadeOn = !!state.session && state.session.phase !== 'summary';
-  if (shadeOn && shade.hidden) document.querySelector('.main').scrollTo(0, 0); // カードが見えるように上へ
-  shade.hidden = !shadeOn;
-  document.getElementById('header-shade').hidden = !shadeOn; // ヘッダーは別の覆いで隠す（iOS 対策）
+  if (shadeOn && shade.hidden) {
+    document.querySelector('.main').scrollTo(0, 0); // カードが見えるように上へ
+    fadeInSession(shade, headerShade);
+  } else {
+    shade.hidden = !shadeOn;
+    headerShade.hidden = !shadeOn;
+  }
 
   updateFabs(); // 作業中はやることの「＋」を隠す（右下の固定ボタンは覆いの上に浮くため）
 
@@ -499,10 +507,10 @@ function renderQuests() {
         const list = others.filter((e) => e.task.categoryId === a.id);
         if (!list.length) return '';
         return `<h3 class="quest-subheading">${categoryIconHtml(a, 'cat-icon cat-icon--sm')}${escapeHtml(a.name)} <span class="count">${list.length}</span></h3>
-          <ul class="task-list" data-category="${a.id}">${list.map(row('todo', dragOk(list))).join('')}</ul>`;
+          <ul class="task-list" data-list="todo" data-category="${a.id}">${list.map(row('todo', dragOk(list))).join('')}</ul>`;
       }).join('');
     } else {
-      body = `<ul class="task-list" data-category="${ui.categoryFilter}">${others.map(row('todo', dragOk(others))).join('')}</ul>`;
+      body = `<ul class="task-list" data-list="todo" data-category="${ui.categoryFilter}">${others.map(row('todo', dragOk(others))).join('')}</ul>`;
     }
     html += `<details class="quest-section quest-details" data-section="todo" ${ui.sections.todo ? 'open' : ''}>
       <summary class="quest-heading">やること <span class="count">${others.length}</span></summary>
@@ -513,25 +521,26 @@ function renderQuests() {
   if (doneToday.length) {
     html += `<details class="quest-section quest-details" data-section="done" ${ui.sections.done ? 'open' : ''}>
       <summary class="quest-heading">今日やった <span class="count">${doneToday.length}</span></summary>
-      <ul class="task-list">${doneToday.map(row('undo')).join('')}</ul>
+      <ul class="task-list" data-list="undo">${doneToday.map(row('undo')).join('')}</ul>
     </details>`;
   }
   if (waiting.length) {
     html += `<details class="quest-section quest-details">
       <summary class="quest-heading">次回待ち <span class="count">${waiting.length}</span></summary>
-      <ul class="task-list">${waiting.map(row('wait')).join('')}</ul>
+      <ul class="task-list" data-list="wait">${waiting.map(row('wait')).join('')}</ul>
     </details>`;
   }
   if (finished.length) {
     html += `<details class="quest-section quest-details">
-      <summary class="quest-heading">達成済み <span class="count">${finished.length}</span></summary>
-      <ul class="task-list">${finished.map(row('done')).join('')}</ul>
+      <summary class="quest-heading">やったこと <span class="count">${finished.length}</span></summary>
+      <ul class="task-list" data-list="done">${finished.map(row('done')).join('')}</ul>
     </details>`;
   }
   if (state.tasks.length === 0) {
     html = '<p class="quest-empty">右下の「＋」から最初のやることを登録しましょう。</p>';
   }
   document.getElementById('quest-list').innerHTML = html;
+  markEnteringRows();
   // 折りたたみの開閉を覚える
   document.querySelectorAll('#quest-list details[data-section]').forEach((details) => {
     details.addEventListener('toggle', () => {
@@ -539,6 +548,104 @@ function renderQuests() {
       saveSections();
     });
   });
+  // 折りたたみを指で開いたときは、中身が上からするっと出る（描き直しで開いた状態になったときは動かさない）
+  document.querySelectorAll('#quest-list details.quest-details').forEach((details) => {
+    details.querySelector('summary').addEventListener('click', () => { details.dataset.byUser = details.open ? '' : '1'; });
+    details.addEventListener('toggle', () => {
+      if (!details.open || !details.dataset.byUser) return;
+      details.dataset.byUser = '';
+      unfold(details.querySelector(':scope > :not(summary)'));
+    });
+  });
+}
+
+// 一覧の行の出入り: 前回の描画になかった行（完了して「今日やった」に移った、追加した、取り消した）は下からふわっと入る。
+// 画面を開いた直後やクエストを切り替えた直後は、全部が新しいので動かさない
+let renderedRowKeys = null;
+let renderedRowScope = null;
+function markEnteringRows() {
+  const keys = new Set();
+  document.querySelectorAll('#quest-list .task-list').forEach((ul) => {
+    ul.querySelectorAll('.task-row[data-id]').forEach((li) => keys.add(`${ul.dataset.list}:${ul.dataset.category || ''}:${li.dataset.id}`));
+  });
+  const scope = String(ui.categoryFilter);
+  const animate = renderedRowKeys && renderedRowScope === scope && !document.getElementById('view-quests').hidden
+    && !(typeof reducedMotion === 'function' && reducedMotion());
+  if (animate) {
+    document.querySelectorAll('#quest-list .task-list').forEach((ul) => {
+      ul.querySelectorAll('.task-row[data-id]').forEach((li) => {
+        if (!renderedRowKeys.has(`${ul.dataset.list}:${ul.dataset.category || ''}:${li.dataset.id}`)) li.classList.add('is-entering');
+      });
+    });
+  }
+  renderedRowKeys = keys;
+  renderedRowScope = scope;
+}
+
+// 行をすっと縮めて消してから then() を呼ぶ（取り消しなど、少し待っても困らない操作に使う）
+function leaveRow(row, then) {
+  if (!row || (typeof reducedMotion === 'function' && reducedMotion())) { then(); return; }
+  row.style.height = `${row.getBoundingClientRect().height}px`;
+  void row.offsetWidth;
+  row.classList.add('is-leaving');
+  setTimeout(then, 200);
+}
+
+// 折りたたみの中身を上からするっと出す
+function unfold(body) {
+  if (!body || (typeof reducedMotion === 'function' && reducedMotion())) return;
+  body.classList.add('is-unfolding');
+  void body.offsetWidth;
+  body.classList.remove('is-unfolding');
+}
+
+// 並べ替えのドロップ: 収まった行が「トンッ」と落ち着く
+function settleRow(selector) {
+  const row = document.querySelector(selector);
+  if (row) row.classList.add('is-dropped');
+}
+
+// 「いまやる」カードの写し（入れ替わりの動きに使う）
+function focusSnapshot() {
+  const card = document.querySelector('#focus-quests > .focus-card');
+  return card ? { id: card.dataset.taskId || '', html: card.outerHTML } : null;
+}
+
+// 「いまやる」カードの入れ替わり: 古いカードの写しを重ねて外へ動かし、新しいカードを外から入れる。
+// dir: 'up'（完了して次へ: 古いのが上へ抜け、次が下から）/ 'left'（スキップ: 古いのが左へ抜け、次が右から）。
+// カードは描き直しのたびに作り直されるので、動きは入れ物（#focus-quests）と写しに付ける
+let swapTimer = null;
+function swapFocusCard(before, dir) {
+  const wrap = document.getElementById('focus-quests');
+  const card = wrap.querySelector(':scope > .focus-card');
+  if (!before || !card || (card.dataset.taskId || '') === before.id) return;
+  if (typeof reducedMotion === 'function' && reducedMotion()) return;
+  clearTimeout(swapTimer);
+  wrap.querySelectorAll('.focus-ghost').forEach((g) => g.remove());
+  wrap.classList.remove('swap-up', 'swap-left');
+  const ghost = document.createElement('div');
+  ghost.className = 'focus-ghost';
+  ghost.innerHTML = before.html;
+  wrap.classList.add('is-swapping', `swap-${dir}`);
+  card.classList.add('is-arriving');
+  wrap.appendChild(ghost);
+  void wrap.offsetWidth; // 古いのを定位置、新しいのを外に置いた状態を先に描く
+  ghost.classList.add('is-gone');
+  card.classList.remove('is-arriving');
+  swapTimer = setTimeout(() => {
+    ghost.remove();
+    wrap.classList.remove('is-swapping', 'swap-up', 'swap-left');
+  }, 380);
+}
+
+// 「できた！」を押した瞬間、カードがぷるっと弾む
+function bumpFocusCard() {
+  if (typeof reducedMotion === 'function' && reducedMotion()) return;
+  const wrap = document.getElementById('focus-quests');
+  wrap.classList.remove('is-bump');
+  void wrap.offsetWidth;
+  wrap.classList.add('is-bump');
+  setTimeout(() => wrap.classList.remove('is-bump'), 350);
 }
 
 // --- 追加・編集シート -------------------------------------------------
@@ -601,6 +708,45 @@ function readTaskForm() {
 
 // --- トースト ---------------------------------------------------------
 
+// 作業の始まり: 覆いとカードをふわっと出す（覆いはその場でフェード、カードは少し小さい状態から広がる）。
+// カードは描き直しのたびに作り直されるので、動きは入れ物（#focus-quests）に付ける
+let sessionFadeTimer = null;
+function fadeInSession(shade, headerShade) {
+  const wrap = document.getElementById('focus-quests');
+  shade.hidden = false;
+  headerShade.hidden = false;
+  if (typeof reducedMotion === 'function' && reducedMotion()) return;
+  clearTimeout(sessionFadeTimer);
+  const els = [shade, headerShade, wrap];
+  els.forEach((el) => el.classList.add('is-fading'));
+  wrap.classList.add('is-lifted');
+  void wrap.offsetWidth; // 薄い状態をいったん描いてから濃くする（iOS でも確実に動く）
+  els.forEach((el) => el.classList.remove('is-fading'));
+  sessionFadeTimer = setTimeout(() => wrap.classList.remove('is-lifted'), 400);
+}
+
+// メモのモーダル
+function showNoteModal(taskId, fromEl = null) {
+  const task = state.tasks.find((t) => t.id === taskId);
+  if (!task || !task.note) return;
+  document.getElementById('note-body').innerHTML = linkifyHtml(task.note);
+  const modal = document.getElementById('note-modal');
+  modal.hidden = false;
+  // 押したアイコンの位置から広がって出る
+  const card = modal.querySelector('.note-card');
+  card.classList.remove('is-growing');
+  if (fromEl && !(typeof reducedMotion === 'function' && reducedMotion())) {
+    const cr = card.getBoundingClientRect();
+    const br = fromEl.getBoundingClientRect();
+    card.style.transformOrigin = `${br.left + br.width / 2 - cr.left}px ${br.top + br.height / 2 - cr.top}px`;
+    void card.offsetWidth;
+    card.classList.add('is-growing');
+  }
+}
+function hideNoteModal() {
+  document.getElementById('note-modal').hidden = true;
+}
+
 let toastTimer = null;
 function showToast(message, kind = '') {
   const el = document.getElementById('toast');
@@ -624,6 +770,9 @@ function reorderTasksFromList(row, ul) {
 }
 
 function initQuests() {
+  document.getElementById('note-close').addEventListener('click', hideNoteModal);
+  const noteModal = document.getElementById('note-modal');
+  noteModal.addEventListener('click', (e) => { if (e.target === noteModal) hideNoteModal(); });
   document.getElementById('tasks-back').addEventListener('click', () => slideOutTasks()); // 右スワイプと同じ動きで一覧へ
   document.getElementById('focus-quests').addEventListener('click', (e) => {
     if (e.target.closest('[data-back-to-list]')) showCategoryList();
@@ -635,6 +784,7 @@ function initQuests() {
     onDrop: (row, ul, info) => {
       if (info.moved && !sessionActive()) reorderTasksFromList(row, ul);
       render();
+      settleRow(`#quest-list .task-row[data-id="${row.dataset.id}"]`);
     },
   });
 
@@ -648,19 +798,23 @@ function initQuests() {
         if (focus) startSession(focus.id);
       } else if (action === 'pause') pauseQuest();
       else if (action === 'resume') resumeQuest();
-      else if (action === 'complete') completeQuest();
+      else if (action === 'complete') { bumpFocusCard(); completeQuest(); }
       else if (action === 'quit') quitSession();
       else if (action === 'plus') adjustSeconds(ADJUST_SEC);
       else if (action === 'minus') adjustSeconds(-ADJUST_SEC);
-      else if (action === 'skip') skipQuest();
+      else if (action === 'skip') { const before = focusSnapshot(); skipQuest(); swapFocusCard(before, 'left'); }
+      else if (action === 'note') showNoteModal(qt.closest('.focus-card').dataset.taskId, qt);
       return;
     }
     const undo = e.target.closest('[data-undo]');
     if (undo) {
-      if (undoComplete(undo.dataset.undo)) {
-        showToast('取り消しました');
-        render();
-      }
+      // 行をすっと消してから「やること」に戻す
+      leaveRow(undo.closest('.task-row'), () => {
+        if (undoComplete(undo.dataset.undo)) {
+          showToast('取り消しました');
+          render();
+        } else render();
+      });
       return;
     }
     const edit = e.target.closest('[data-edit]');

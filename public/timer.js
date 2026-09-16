@@ -277,6 +277,7 @@ function nextOrEnd() {
   const s = state.session;
   const next = pickNextQuest();
   if (!next) { endSession('empty'); return; }
+  const before = focusSnapshot();
   s.taskId = next.id;
   s.durationSec = QUEST_SECONDS[next.difficulty] || QUEST_SECONDS[1];
   s.phase = 'countdown';
@@ -285,6 +286,7 @@ function nextOrEnd() {
   saveState();
   scheduleCountdownSounds(s);
   render();
+  swapFocusCard(before, 'up'); // 終えたカードが上へ抜け、次のカードが下から入る
 }
 
 function pickNextQuest(excludeId = null) {
@@ -361,6 +363,8 @@ function tickSession() {
         playTone([660, 520, 400], 0.25);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         render();
+        const qt = document.querySelector('#focus-quests .qt');
+        if (qt) qt.classList.add('is-shake'); // 時間切れの瞬間だけ横に揺れる（描き直すと消える）
       }
       break;
     case 'done':
