@@ -364,8 +364,9 @@ button {
   to { transform: none; box-shadow: 3px 3px 0 var(--cat-color, var(--line)); }
 }
 
-.task-row[data-status="overdue"],
-.task-row[data-status="due"] { border-color: var(--ink); background: #fff6f2; }
+/* 日付の強調: 期限切れも今日が期限も赤（行の背景と情報行の日付の色） */
+.task-row[data-due="over"], .task-row[data-due="today"] { border-color: var(--ink); background: #fff6f2; }
+.due-over, .due-today { color: #c85c4a; font-weight: 700; }
 
 /* 一覧の中のいまやる（先頭）。札で示し、影を黄にする */
 .task-row.is-focus { box-shadow: 3px 3px 0 var(--yellow); }
@@ -724,7 +725,7 @@ button.task-check:active { transform: scale(0.9); }
 .category-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .category-name { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
 .category-meta { font-size: 12px; color: var(--ink-soft); }
-.category-overdue { color: #c85c4a; font-weight: 700; }
+.category-urgent { color: #c85c4a; font-weight: 700; }
 
 .category-edit {
   flex: none;

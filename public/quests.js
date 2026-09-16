@@ -167,9 +167,9 @@ function plusBtn(sec) { return `<button class="qt-ctl" data-qt="plus" aria-label
 function minusBtn(sec) { return `<button class="qt-ctl" data-qt="minus" aria-label="10秒引く" ${sec <= 0 ? 'disabled' : ''}>${ICON_MINUS}</button>`; }
 
 // 実行中のカードと同じ構造（透明な下敷き用）。待機中と次への待ちの高さを実行中とそろえるために使う
-function runningBaseHtml(task, meta, seconds) {
+function runningBaseHtml(task, metaHtmlStr, seconds) {
   return `<div class="focus-title">${escapeHtml(task.title)}</div>
-      <div class="focus-meta">${escapeHtml(meta)}</div>
+      <div class="focus-meta">${metaHtmlStr}</div>
       <div class="qt"><div class="qt-dial">${ringHtml(0)}<div class="qt-center"><div class="qt-seconds">${digitsHtml(seconds)}</div><div class="qt-slot"><button type="button" class="qt-ctl" tabindex="-1">${ICON_MINUS}</button><button type="button" class="qt-ctl" tabindex="-1">${ICON_PAUSE}</button><button type="button" class="qt-ctl" tabindex="-1">${ICON_PLUS}</button></div></div></div></div>
       <div class="qt-actions"><button type="button" class="btn btn-primary qt-main" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="#i-check-box"/></svg> できた！</button><div class="qt-subrow"><button type="button" class="btn qt-small qt-quit" tabindex="-1">× やめる</button><button type="button" class="btn qt-small" tabindex="-1">スキップ</button></div></div>`;
 }
@@ -217,11 +217,12 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
   const task = entry ? entry.task : null;
   const status = entry ? entry.status : 'todo';
   const inSession = phase !== 'idle' && phase !== 'summary';
-  let metaTail = '';
-  if (phase === 'paused') metaTail = '一時停止中';
-  else if (phase === 'running' && s.timedOut) metaTail = '時間切れ';
-  else if (task) metaTail = dueText(task, status, now);
-  const meta = task ? [categoryName, DIFFICULTY_LABELS[task.difficulty], repeatLabel(task.repeat), metaTail].filter(Boolean).join(' · ') : '';
+  // 情報行（HTML）。一時停止中・時間切れは日付の代わりにその状態を出す
+  const head = task ? [categoryName, DIFFICULTY_LABELS[task.difficulty], repeatLabel(task.repeat)] : [];
+  let meta = '';
+  if (task && phase === 'paused') meta = [...head, '一時停止中'].filter(Boolean).map((p) => escapeHtml(p)).join(' · ');
+  else if (task && phase === 'running' && s.timedOut) meta = [...head, '時間切れ'].filter(Boolean).map((p) => escapeHtml(p)).join(' · ');
+  else if (task) meta = metaHtml(task, status, now, head);
 
   // リング
   let seconds = task ? (QUEST_SECONDS[task.difficulty] || QUEST_SECONDS[1]) + (phase === 'idle' ? idleExtraFor(task.id) : 0) : 0;
@@ -251,7 +252,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
       <div class="cd-overlay">
         <div class="cd-body">
           <div class="cd-title">${escapeHtml(task.title)}<span class="cd-sec">（${seconds}秒）</span></div>
-          <div class="cd-meta">${escapeHtml(meta)}${noteBtn(task)}</div>
+          <div class="cd-meta">${meta}${noteBtn(task)}</div>
         </div>
         <div class="qt-actions">
           <button class="btn btn-primary qt-main is-start" data-qt="start">${ICON_PLAY} はじめる</button>
@@ -261,8 +262,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
     </div>`;
   } else if (phase === 'countdown') {
     // 次への待ち: 待機中と同じ並び（タイトル、秒数、情報）の下にカウントダウンの数字を大きく出す。高さは実行中と同じ
-    const cdMeta = [categoryName, DIFFICULTY_LABELS[task.difficulty], repeatLabel(task.repeat), dueText(task, status, now)]
-      .filter(Boolean).join(' · ');
+    const cdMeta = metaHtml(task, status, now, head);
     const canSkip = !!task && canDeferTask(task, now); // 同じクエストにひとつ後ろの候補がなければ押せない（まとめ中はやることがないこともある）
     const left = Math.max(1, countdownRemainingSec(s));
     return `<div class="focus-card focus-card--countdown is-session" data-phase="countdown" data-task-id="${task.id}">
@@ -270,7 +270,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
       <div class="cd-overlay">
         <div class="cd-body">
           <div class="cd-title">${escapeHtml(task.title)}<span class="cd-sec">（${s.durationSec}秒）</span></div>
-          <div class="cd-meta">${escapeHtml(cdMeta)}${noteBtn(task)}</div>
+          <div class="cd-meta">${cdMeta}${noteBtn(task)}</div>
           <div class="cd-num is-pop" data-value="${left}">${left}</div>
         </div>
         <div class="qt-actions">
@@ -311,7 +311,7 @@ function renderFocusCard(entry, categoryName, now, empty = { kind: 'rest', doneC
     : '';
   return `<div class="focus-card ${comboCircle ? 'has-combo' : ''} ${inSession ? 'is-session' : ''}" data-phase="${phase}" data-task-id="${task ? task.id : ''}">
     <div class="focus-title">${task ? escapeHtml(task.title) : ''}</div>
-    <div class="focus-meta">${escapeHtml(meta)}${noteBtn(task)}</div>
+    <div class="focus-meta">${meta}${noteBtn(task)}</div>
     <div class="qt ${qtCls}">
       <div class="qt-dial">
         ${ringHtml(offset, ringStroke)}
@@ -398,9 +398,29 @@ function dueText(task, status, now) {
     const d = daysBetween(task.dueAt, now);
     return d === 0 ? '今日' : `${d}日遅れ`;
   }
-  if (status === 'todo' && task.deadline) return `${formatShortDate(task.deadline)}まで`;
+  if (status === 'todo' && task.deadline) return dateKey(task.deadline) === dateKey(now) ? '今日まで' : `${formatShortDate(task.deadline)}まで`;
   if (status === 'fresh') return `次は ${formatShortDate(task.dueAt)}`;
   return '';
+}
+
+// 日付の区分: over（期限切れ = 今日より前）/ today（今日）/ ''（それ以外・日付なし）。行と情報行の色分けに使う
+function dueKind(task, now = new Date()) {
+  if (task.done) return '';
+  const key = dueDayKey(task);
+  if (key === '9999-99-99') return '';
+  const today = dateKey(now);
+  if (key < today) return 'over';
+  if (key === today) return 'today';
+  return '';
+}
+
+// 情報行（クエスト · 難易度 · 繰り返し · 日付 …）を HTML にする。日付の部分は期限切れを赤、今日を橙で強調する
+function metaHtml(task, status, now, extra = []) {
+  const kind = dueKind(task, now);
+  const due = dueText(task, status, now);
+  const parts = extra.map((p) => escapeHtml(p));
+  if (due) parts.push(kind ? `<span class="due-${kind}">${escapeHtml(due)}</span>` : escapeHtml(due));
+  return parts.filter(Boolean).join(' · ');
 }
 
 function sortDue(a, b) {
@@ -415,7 +435,7 @@ function taskRow(entry, categoryName, now, mode, canDrag = false) {
   const { task, status } = entry;
   const isFocus = mode === 'todo' && task.id === ui.focusTaskId;
   const cat = state.categories.find((a) => a.id === task.categoryId);
-  const meta = [categoryName, DIFFICULTY_LABELS[task.difficulty], repeatLabel(task.repeat), dueText(task, status, now),
+  const meta = [metaHtml(task, status, now, [categoryName, DIFFICULTY_LABELS[task.difficulty], repeatLabel(task.repeat)]),
     isDeferredToday(task, now) ? 'スキップ済み' : '']
     .filter(Boolean).join(' · ');
   let action;
@@ -434,11 +454,11 @@ function taskRow(entry, categoryName, now, mode, canDrag = false) {
   const grip = mode === 'todo' && canDrag && !sessionActive() && !fixed
     ? '<span class="drag-grip" aria-label="押したまま動かして並べ替え" title="押したまま動かして並べ替え"><svg class="icon" aria-hidden="true"><use href="#i-grip"/></svg></span>'
     : '';
-  return `<li class="task-row ${fixed ? 'is-fixed' : ''} ${isFocus ? 'is-focus' : ''}" data-status="${status}" data-id="${task.id}">
+  return `<li class="task-row ${fixed ? 'is-fixed' : ''} ${isFocus ? 'is-focus' : ''}" data-status="${status}" data-due="${mode === 'todo' ? dueKind(task, now) : ''}" data-id="${task.id}">
     ${action}
     <button class="task-body" data-edit="${task.id}">
       <span class="task-title">${isFocus ? '<span class="task-focus-mark">いまやる</span>' : ''}${escapeHtml(task.title)}</span>
-      <span class="task-meta">${escapeHtml(meta)}</span>
+      <span class="task-meta">${meta}</span>
     </button>
     ${grip}
   </li>`;
