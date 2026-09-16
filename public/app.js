@@ -148,14 +148,18 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// 文中の URL（http / https）をリンクにする。別ウインドウで開く。末尾の句読点や閉じかっこはリンクに含めない
+// 文中の URL（http / https）をリンクにする。別ウインドウで開く。
+// URL は半角の文字が続く範囲だけ（日本語や全角のかっこが出たらそこで終わり）。末尾の句読点や半角の閉じかっこはリンクに含めない
 function linkifyHtml(str) {
   const escaped = escapeHtml(str);
-  return escaped.replace(/https?:\/\/[^\s<>"']+/g, (m) => {
+  return escaped.replace(/https?:\/\/[!-~]+/g, (m) => {
     let url = m;
     let tail = '';
-    const t = url.match(/[)\]}>.,。、!?！？]+$/);
-    if (t) { url = url.slice(0, -t[0].length); tail = t[0]; }
+    // 引用符や山かっこ（escapeHtml で &quot; / &#39; / &lt; / &gt; になっている）が出たらそこで終わり
+    const q = url.search(/&quot;|&#39;|&lt;|&gt;/);
+    if (q >= 0) { tail = url.slice(q); url = url.slice(0, q); }
+    const t = url.match(/[)\]}.,!?;:]+$/);
+    if (t) { url = url.slice(0, -t[0].length); tail = t[0] + tail; }
     return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${tail}`;
   });
 }
@@ -344,7 +348,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.22.1';
+const APP_VERSION = 'v0.22.2';
 let waitingWorker = null;
 
 function registerServiceWorker() {
