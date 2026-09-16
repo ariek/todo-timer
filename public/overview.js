@@ -59,6 +59,7 @@ function initOverview() {
       const ids = [...ul.querySelectorAll('.category-row[data-id]')].map((r) => r.dataset.id);
       reorderCategories(ids);
       render();
+      settleRow(`#category-list .category-row[data-id="${row.dataset.id}"]`);
     },
   });
 }

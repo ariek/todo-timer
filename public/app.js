@@ -1,8 +1,6 @@
 // 状態管理、保存、画面切り替え
 
 const STORAGE_KEY = 'todo-timer.v1';
-const LAST_TAB_KEY = 'todo-timer.lastTab'; // 最後に見ていたタブ。エクスポートには含めない
-const TAB_NAMES = ['categories', 'log', 'settings'];
 const SCREEN_KEY = 'todo-timer.screen'; // クエストタブで開いていた画面（一覧かやることか、どのクエストか）。エクスポートには含めない
 const DATA_VERSION = 1;
 
@@ -167,6 +165,7 @@ function renderHeader() {
   const info = levelInfo(state.player.xp);
   document.getElementById('level-badge').textContent = `Lv.${info.level} ${titleForLevel(info.level)}`;
   document.getElementById('xp-fill').style.width = `${Math.round((info.xpInLevel / info.xpToNext) * 100)}%`;
+  document.getElementById('level-gauge').classList.toggle('is-near-full', info.xpInLevel / info.xpToNext >= 0.9); // あと少しで光る
   document.getElementById('xp-now').textContent = String(info.xpInLevel);
   document.getElementById('xp-next').textContent = `/ ${info.xpToNext}`;
 }
@@ -215,59 +214,49 @@ function renderSessionModals() {
 
 // --- タブ -------------------------------------------------------------
 
+// tab: 'categories'（本体。クエスト一覧かやること画面）/ 'log' / 'settings'（本体の上に重なるページ）
 function switchTab(tab) {
   const prev = ui.tab;
   ui.tab = tab;
-  try { localStorage.setItem(LAST_TAB_KEY, tab); } catch (err) { /* 保存できなくても続行 */ }
-  // クエストタブは、クエスト一覧かやること画面のどちらかを出す
-  const view = tab === 'categories' && ui.showTasks ? 'quests' : tab;
-  document.querySelectorAll('.view').forEach((v) => { v.hidden = v.dataset.view !== view; });
+  // 本体は、クエスト一覧かやること画面のどちらかを出す
+  const view = ui.showTasks ? 'quests' : 'categories';
+  document.querySelectorAll('.main > .view').forEach((v) => { v.hidden = v.dataset.view !== view; });
   document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === tab));
-  // 記録・設定を開いている間は、ヘッダーに閉じるボタン（×）だけを出す
-  const sub = tab !== 'categories';
-  document.querySelectorAll('#tabbar .tab').forEach((b) => { b.hidden = sub; });
-  document.getElementById('hd-close').hidden = !sub;
+  // 記録・設定は × のヘッダーごと下から上がって本体に重なり、閉じるときは下へ下がる
+  const motion = prev !== tab && !(typeof reducedMotion === 'function' && reducedMotion());
+  document.querySelectorAll('.page').forEach((p) => {
+    if (p.dataset.page === tab) showPage(p, motion);
+    else hidePage(p, motion && p.dataset.page === prev);
+  });
   updateFabs();
   renderTimerMini();
-  document.querySelector('.main').scrollTo(0, 0);
-  // 記録・設定は下から上がって出て、閉じるときは下へ下がる
-  const motion = prev !== tab && !(typeof reducedMotion === 'function' && reducedMotion());
-  if (motion && sub) {
-    const prevView = prev === 'categories' ? (ui.showTasks ? 'quests' : 'categories') : prev;
-    riseView(document.querySelector(`.view[data-view="${tab}"]`), document.querySelector(`.view[data-view="${prevView}"]`));
-  }
-  if (motion && !sub && (prev === 'log' || prev === 'settings')) sinkView(document.querySelector(`.view[data-view="${prev}"]`));
+  if (tab === 'categories' && prev === 'categories') document.querySelector('.main').scrollTo(0, 0);
 }
 
-// 記録・設定の画面を下から上げる（y: 100% → 0%）。動いている間は元の画面を後ろに見せておく
-const viewMotionTimers = new WeakMap();
-function riseView(view, behind) {
-  clearTimeout(viewMotionTimers.get(view));
-  view.classList.remove('is-sinking');
-  view.classList.add('is-rising');
-  if (behind && behind !== view) {
-    behind.hidden = false;
-    behind.classList.add('is-behind');
-    behind.style.top = '16px';
+// 記録・設定のページを出す（y: 100% → 0%）/ しまう（0% → 100%）。シートと同じく transition で動かす
+const pageTimers = new WeakMap();
+function showPage(page, animate) {
+  clearTimeout(pageTimers.get(page));
+  page.classList.remove('is-closing');
+  if (page.hidden) {
+    page.querySelector('.page-body').scrollTo(0, 0);
+    if (animate) {
+      // いったん「下にある状態」で描いてから定位置へ動かす（iOS でも確実に下から上がる）
+      page.classList.add('is-opening');
+      page.hidden = false;
+      void page.offsetWidth;
+    }
+    page.hidden = false;
   }
-  viewMotionTimers.set(view, setTimeout(() => {
-    view.classList.remove('is-rising');
-    if (behind && behind !== view) { behind.classList.remove('is-behind'); behind.style.top = ''; behind.hidden = true; }
-  }, 280));
+  page.classList.remove('is-opening');
 }
-
-// 記録・設定の画面を、後ろの画面の上に重ねたまま下へ下げてから隠す（y: 0% → 100%）
-function sinkView(view) {
-  clearTimeout(viewMotionTimers.get(view));
-  view.classList.remove('is-rising');
-  view.hidden = false;
-  view.classList.add('is-sinking');
-  view.style.top = `${document.querySelector('.main').scrollTop + 16}px`; // 本文の上の余白の分
-  viewMotionTimers.set(view, setTimeout(() => {
-    view.classList.remove('is-sinking');
-    view.style.top = '';
-    view.hidden = true;
-  }, 260));
+function hidePage(page, animate) {
+  if (page.hidden) return;
+  clearTimeout(pageTimers.get(page));
+  page.classList.remove('is-opening');
+  if (!animate) { page.classList.remove('is-closing'); page.hidden = true; return; }
+  page.classList.add('is-closing');
+  pageTimers.set(page, setTimeout(() => { page.classList.remove('is-closing'); page.hidden = true; }, 260));
 }
 
 // クエスト一覧からやること画面へ（categoryId が null なら「すべて」）
@@ -290,11 +279,11 @@ function showCategoryList() {
   switchTab('categories');
 }
 
-// 右下の追加ボタン: 一覧ではクエストの「＋」、やること画面ではやることの「＋」（作業中は隠す）
+// 右下の追加ボタン: 一覧ではクエストの「＋」、やること画面ではやることの「＋」（作業中は隠す）。
+// 記録・設定のページは本体の上に重なるので、開いている間も消さない（ページに隠れる）
 function updateFabs() {
-  const onCats = ui.tab === 'categories';
-  document.getElementById('category-add-btn').hidden = !(onCats && !ui.showTasks);
-  document.getElementById('add-task-btn').hidden = !(onCats && ui.showTasks) || sessionActive();
+  document.getElementById('category-add-btn').hidden = ui.showTasks;
+  document.getElementById('add-task-btn').hidden = !ui.showTasks || sessionActive();
 }
 
 // シートを開く/閉じる。閉じるときは下へ下がる動き（y: 0% → 100%）と板のフェードのあとで隠す。動きを減らす設定なら即座に隠す
@@ -356,7 +345,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.21.6';
+const APP_VERSION = 'v0.22.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -481,33 +470,55 @@ function slideOutTasks() {
 
 function initSwipeBack() {
   const quests = slide.quests();
-  let sw = null; // { id, x0, y0, active }
+  let sw = null; // { id, x0, y0, dir: null | 'h' | 'v', active, samples }
+
+  // 最初の動きで横か縦かを決める。少しでも右向きなら横（その間は縦スクロールさせない）
+  const decide = (dx, dy) => {
+    if (sw.dir) return;
+    if (dx === 0 && dy === 0) return;
+    sw.dir = dx > 0 && dx >= Math.abs(dy) ? 'h' : 'v';
+  };
 
   quests.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'touch' || sw) return;
     if (sessionActive()) return; // 作業中は戻れない
     if (e.target.closest('.drag-grip, .sheet-backdrop, a, input, textarea, select')) return;
-    sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, active: false };
+    sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dir: null, active: false, samples: [] };
   });
+  // 横と決めた指の動きはブラウザに渡さず、縦スクロールが混ざらないようにする（最初の touchmove から止める必要がある）
+  quests.addEventListener('touchmove', (e) => {
+    if (!sw || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    decide(t.clientX - sw.x0, t.clientY - sw.y0);
+    if (sw.dir === 'h' && e.cancelable) e.preventDefault();
+  }, { passive: false });
   quests.addEventListener('pointermove', (e) => {
     if (!sw || e.pointerId !== sw.id) return;
     const dx = e.clientX - sw.x0;
     const dy = e.clientY - sw.y0;
+    decide(dx, dy);
+    if (sw.dir === 'v') { sw = null; return; } // 縦スクロールに任せる
     if (!sw.active) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } // 縦スクロール
-      if (dx < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return; // まだ判断しない
+      if (dx < 4) return;
       sw.active = true;
       slide.setup();
     }
+    sw.samples.push({ x: e.clientX, t: Date.now() });
+    if (sw.samples.length > 6) sw.samples.shift();
     slide.apply(Math.max(0, dx));
   });
   const finish = (e) => {
     if (!sw || (e && e.pointerId !== undefined && e.pointerId !== sw.id)) return;
-    const wasActive = sw.active;
+    const { active, samples } = sw;
     const dx = e && e.clientX !== undefined ? e.clientX - sw.x0 : 0;
     sw = null;
-    if (!wasActive) return;
-    const toList = dx > slide.width() * 0.35;
+    if (!active) return;
+    // 幅の 35% を超えたら戻る。速く払ったとき（直近 0.1 秒の速さが 0.5px/ms 以上）は短い距離でも戻る
+    const now = Date.now();
+    const last = samples[samples.length - 1];
+    const first = samples.find((p) => now - p.t <= 100) || last;
+    const speed = last && first && last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0;
+    const toList = dx > slide.width() * 0.35 || (speed >= 0.5 && dx > 24);
     slide.settle(toList ? slide.width() : 0, toList ? showCategoryList : null);
   };
   quests.addEventListener('pointerup', finish);
@@ -524,11 +535,12 @@ function init() {
   render();
 
   document.getElementById('tabbar').addEventListener('click', (e) => {
-    if (e.target.closest('#hd-close')) { switchTab('categories'); return; } // × で元の画面（一覧またはやること画面）へ
     const btn = e.target.closest('.tab');
     if (!btn) return;
     switchTab(btn.dataset.tab);
   });
+  // 記録・設定の × で元の画面（一覧またはやること画面）へ
+  document.querySelectorAll('[data-page-close]').forEach((b) => b.addEventListener('click', () => switchTab('categories')));
 
   initOverview();
   initSwipeBack();
@@ -540,13 +552,11 @@ function init() {
   initDialog();
   initTimer();
   render();
-  // 前回見ていた画面から始める。なければクエスト
-  let lastTab = null;
-  try { lastTab = localStorage.getItem(LAST_TAB_KEY); } catch (err) { lastTab = null; }
+  // 前回見ていた画面（一覧かやること画面か）から始める。記録・設定は開いたまま終えても閉じた状態で始める
   loadScreen();
   if (sessionActive()) ui.showTasks = true; // 作業中はやること画面から始める
   if (ui.showTasks) renderQuests();
-  switchTab(sessionActive() ? 'categories' : (TAB_NAMES.includes(lastTab) ? lastTab : 'categories'));
+  switchTab('categories');
 
   document.getElementById('app-version').textContent = `やることクエスト ${APP_VERSION}`;
   // iOS はビューポート指定だけではピンチズームを止められないので、ジェスチャー自体を止める
