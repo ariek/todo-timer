@@ -100,19 +100,7 @@ function downloadJson() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// --- サンプル削除 / 初期化 --------------------------------------------
-
-function clearSample() {
-  state.tasks = [];
-  state.logs = [];
-  state.player = { xp: 0, level: 1, bestStreak: 0 };
-  state.session = null;
-  state.sessions = [];
-  state.sample = false;
-  ui.categoryFilter = null;
-  stopSessionLoop();
-  saveState();
-}
+// --- 初期化（サンプルを消すときもこれ）------------------------------
 
 function resetAll() {
   localStorage.removeItem(STORAGE_KEY);
@@ -125,7 +113,6 @@ function resetAll() {
 // --- 描画 -------------------------------------------------------------
 
 function renderSettings() {
-  document.getElementById('sample-section').hidden = !state.sample;
   document.getElementById('data-summary').textContent =
     `クエスト ${state.categories.length} 件 · やること ${state.tasks.length} 件 · 記録 ${state.logs.length} 件 · データ形式 v${state.version}`;
 }
@@ -137,11 +124,56 @@ function openCategorySheet(categoryId = null) {
   form.elements.name.value = category ? category.name : '';
   form.elements.color.value = category ? category.color : nextFreeColor();
   form.elements.icon.value = category ? category.icon : DEFAULT_ICON;
+  form.elements.bulk.value = '';
+  // 追加のときだけ「ひとつずつ / まとめて」を選べる（前回選んだ方を出す）。編集はひとつずつ
+  document.getElementById('category-mode-wrap').hidden = !!category;
+  form.elements.mode.value = category ? 'single' : lastCategoryAddMode;
   document.getElementById('category-sheet-title').textContent = category ? 'クエストを編集' : 'クエストを追加';
   document.getElementById('category-delete').hidden = !category;
   renderPickers();
+  updateCategoryFormVisibility();
   showSheet(document.getElementById('category-sheet'));
-  setTimeout(() => form.elements.name.focus(), 320); // シートが上がりきってから
+  setTimeout(() => categoryFormMainInput().focus(), 320); // シートが上がりきってから
+}
+
+// 追加のしかた。'single' = ひとつずつ、'bulk' = まとめて（クエストとやることを1行に1つ）
+let lastCategoryAddMode = 'single';
+function categoryAddMode() {
+  const form = document.getElementById('category-form');
+  return form.elements.id.value ? 'single' : form.elements.mode.value;
+}
+function categoryFormMainInput() {
+  const form = document.getElementById('category-form');
+  return categoryAddMode() === 'bulk' ? form.elements.bulk : form.elements.name;
+}
+function updateCategoryFormVisibility() {
+  const form = document.getElementById('category-form');
+  const bulk = categoryAddMode() === 'bulk';
+  form.querySelectorAll('.cat-single').forEach((el) => { el.hidden = bulk; });
+  form.querySelectorAll('.cat-bulk').forEach((el) => { el.hidden = !bulk; });
+}
+
+// 「まとめて」の保存: クエストとやることを貼り付けた行から登録する。読み飛ばした行はトーストで知らせる
+function submitBulkCategories(form) {
+  const text = form.elements.bulk.value;
+  if (!bulkTrim(text)) { form.elements.bulk.focus(); showToast('1行に1つずつ入力してください'); return; }
+  const plan = parseBulkText(text, state.categories, state.tasks, { bareIsCategory: true });
+  const skipped = Object.values(plan.skipped).reduce((a, b) => a + b, 0);
+  if (!plan.entries.length && !plan.newCategories.length) {
+    form.elements.bulk.focus();
+    showToast(plan.skipped.duplicate === skipped && skipped > 0 ? 'すべて登録済みです' : '読める行がありません（日付や難易度を確かめてください）');
+    return;
+  }
+  const at = centerOf(form.querySelector('button[type="submit"]'));
+  const result = applyBulkPlan(plan);
+  closeCategorySheet();
+  render();
+  if (result.tasks) {
+    floatText(at.x, at.y, `+${result.tasks} XP`, false, true);
+    setTimeout(pulseXpBar, 250);
+  }
+  const what = [result.categories ? `クエスト ${result.categories} 件` : '', result.tasks ? `やること ${result.tasks} 件` : ''].filter(Boolean).join('、');
+  showToast(`${what}を追加しました${skipped ? `（${skipped} 行は読み飛ばし）` : ''}`);
 }
 
 function closeCategorySheet() {
@@ -179,6 +211,11 @@ function initSettings() {
     form.elements.icon.value = b.dataset.icon;
     renderPickers();
   });
+  form.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener('change', () => {
+    lastCategoryAddMode = form.elements.mode.value;
+    updateCategoryFormVisibility();
+    categoryFormMainInput().focus();
+  }));
   let lastSubmit = 0;
   let fromPointer = false;
   form.querySelector('button[type="submit"]').addEventListener('pointerdown', (e) => {
@@ -192,10 +229,12 @@ function initSettings() {
     e.preventDefault();
     if (!fromPointer && Date.now() - lastSubmit < 400) {
       // pointerdown で処理した直後のクリック分は無視。入力が空のままなら、指を離したあとも入力欄にフォーカスを戻しておく
-      if (!form.elements.name.value.trim()) form.elements.name.focus();
+      const main = categoryFormMainInput();
+      if (!main.value.trim()) main.focus();
       return;
     }
     lastSubmit = Date.now();
+    if (categoryAddMode() === 'bulk') { submitBulkCategories(form); return; }
     const name = form.elements.name.value.trim();
     if (!name) { form.elements.name.focus(); showToast('クエストの名前を入力してください'); return; }
     const isNew = !form.elements.id.value;
@@ -265,14 +304,6 @@ function initSettings() {
     importCategory.value = '';
     render();
     showToast('読み込みました');
-  });
-
-  // サンプル削除
-  document.getElementById('sample-clear').addEventListener('click', async () => {
-    if (!(await askConfirm('サンプルのやることと記録を削除します。クエストは残ります。', { ok: '消す', danger: true }))) return;
-    clearSample();
-    render();
-    showToast('サンプルを消しました');
   });
 
   // 初期化

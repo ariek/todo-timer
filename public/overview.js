@@ -44,7 +44,7 @@ function renderOverview() {
   });
   list.innerHTML = cats.length
     ? allRow + rows.join('')
-    : `<li class="focus-card is-empty" data-empty="none"><div class="focus-empty"><strong>まだクエストがありません</strong><span>右下の「＋」から、最初のクエストを作ろう。設定の一括追加でまとめて作ることもできます</span></div></li>`;
+    : `<li class="focus-card is-empty" data-empty="none"><div class="focus-empty"><strong>まだクエストがありません</strong><span>右下の「＋」から、最初のクエストを作ろう。「まとめて」を選ぶと、やることごと一度に作ることもできます</span></div></li>`;
 }
 
 function initOverview() {

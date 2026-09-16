@@ -1174,21 +1174,6 @@ button.task-check:active { transform: scale(0.9); }
   white-space: nowrap;
 }
 
-/* 一括追加 */
-.bulk-category { font-family: inherit; font-size: 15px; line-height: 1.5; }
-
-.bulk-result {
-  margin-top: 10px;
-  padding: 10px 14px;
-  border: 2px dashed var(--ink-soft);
-  border-radius: var(--radius-wobbly);
-  font-size: 14px;
-}
-
-.bulk-result p { margin: 0 0 6px; }
-.bulk-skip { color: var(--ink-soft); font-size: 13px; }
-.bulk-result .btn-row { margin-top: 4px; }
-
 /* クエストのタイマー（いまやるカード） */
 .focus-combo {
   display: inline-flex; align-items: center; gap: 4px;

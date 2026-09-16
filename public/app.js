@@ -35,7 +35,6 @@ function emptyState() {
     logs: [],
     session: null,
     sessions: [],
-    sample: false,
   };
 }
 
@@ -81,7 +80,6 @@ function saveState() {
 
 function sampleState(now = new Date()) {
   const s = emptyState();
-  s.sample = true;
   const iso = (d) => new Date(d).toISOString();
   const daysAgo = (n) => addDays(now, -n);
   const daysLater = (n) => addDays(now, n);
@@ -348,7 +346,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.24.0';
+const APP_VERSION = 'v0.25.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -565,7 +563,6 @@ function init() {
   initSwipeBack();
   initQuests();
   initSettings();
-  initBulk();
   initLog();
   initEffects();
   initDialog();
