@@ -252,15 +252,25 @@
     <form class="sheet" id="task-form" autocomplete="off">
       <h2 class="sheet-title" id="task-sheet-title">やることを追加</h2>
       <input type="hidden" name="id">
-      <label class="field">
+      <!-- 追加のときだけ: ひとつずつ（いつもの入力）か、まとめて（1行に1つ貼り付け）か -->
+      <div class="seg seg--mode" id="task-mode-wrap" role="radiogroup" aria-label="追加のしかた">
+        <label class="seg-item"><input type="radio" name="mode" value="single" checked><span>ひとつずつ</span></label>
+        <label class="seg-item"><input type="radio" name="mode" value="bulk"><span>まとめて</span></label>
+      </div>
+      <label class="field task-single">
         <span class="field-label">やること</span>
         <input type="text" name="title" maxlength="60" placeholder="例: 経費精算を出す">
+      </label>
+      <label class="field task-bulk" hidden>
+        <span class="field-label">やること（1行に1つ）</span>
+        <textarea name="bulk" rows="6" placeholder="経費精算を出す&#10;請求書を送る：9/20&#10;会議の資料：明日：2：10ページまで"></textarea>
+        <span class="field-hint">「やること：日付：難易度：メモ」の形でも書けます。日付から後ろは省略できます</span>
       </label>
       <label class="field">
         <span class="field-label">クエスト</span>
         <select name="categoryId"></select>
       </label>
-      <div class="field">
+      <div class="field task-single">
         <span class="field-label">難易度</span>
         <div class="seg" role="radiogroup">
           <label class="seg-item"><input type="radio" name="difficulty" value="1" checked><span>★ <small>3分</small></span></label>
@@ -268,7 +278,7 @@
           <label class="seg-item"><input type="radio" name="difficulty" value="3"><span>★★★ <small>10分</small></span></label>
         </div>
       </div>
-      <label class="field">
+      <label class="field task-single">
         <span class="field-label">繰り返し</span>
         <select name="repeatType">
           <option value="none">なし</option>
@@ -277,15 +287,15 @@
           <option value="days">数日ごと</option>
         </select>
       </label>
-      <label class="field" id="repeat-every-wrap" hidden>
+      <label class="field task-single" id="repeat-every-wrap" hidden>
         <span class="field-label">何日ごと</span>
         <input type="number" name="repeatEvery" min="1" max="365" value="3" inputmode="numeric">
       </label>
-      <label class="field" id="deadline-wrap">
+      <label class="field task-single" id="deadline-wrap">
         <span class="field-label">日付（任意）</span>
         <input type="date" name="deadline">
       </label>
-      <label class="field">
+      <label class="field task-single">
         <span class="field-label">メモ（任意）</span>
         <textarea name="note" rows="2" maxlength="200"></textarea>
       </label>
