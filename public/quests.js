@@ -684,11 +684,26 @@ function openTaskSheet(taskId = null) {
   form.elements.repeatEvery.value = task && task.repeat.type === 'days' ? task.repeat.every : 3;
   form.elements.deadline.value = task && task.deadline ? dateKey(task.deadline) : '';
   form.elements.note.value = task ? task.note : '';
+  form.elements.bulk.value = '';
+  // 追加のときだけ「ひとつずつ / まとめて」を選べる（前回選んだ方を出す）。編集はひとつずつ
+  document.getElementById('task-mode-wrap').hidden = !!task;
+  form.elements.mode.value = task ? 'single' : lastAddMode;
   document.getElementById('task-sheet-title').textContent = task ? 'やることを編集' : 'やることを追加';
   document.getElementById('task-delete').hidden = !task;
   updateTaskFormVisibility();
   showSheet(document.getElementById('task-sheet'));
-  setTimeout(() => form.elements.title.focus(), 320); // シートが上がりきってから（途中で入力欄に移るとキーボードで位置が飛ぶ）
+  setTimeout(() => taskFormMainInput().focus(), 320); // シートが上がりきってから（途中で入力欄に移るとキーボードで位置が飛ぶ）
+}
+
+// 追加のしかた。'single' = ひとつずつ、'bulk' = まとめて（1行に1つ）
+let lastAddMode = 'single';
+function taskAddMode() {
+  const form = document.getElementById('task-form');
+  return form.elements.id.value ? 'single' : form.elements.mode.value;
+}
+function taskFormMainInput() {
+  const form = document.getElementById('task-form');
+  return taskAddMode() === 'bulk' ? form.elements.bulk : form.elements.title;
 }
 
 function closeTaskSheet() {
@@ -698,8 +713,34 @@ function closeTaskSheet() {
 function updateTaskFormVisibility() {
   const form = document.getElementById('task-form');
   const type = form.elements.repeatType.value;
-  document.getElementById('repeat-every-wrap').hidden = type !== 'days';
-  document.getElementById('deadline-wrap').hidden = type !== 'none';
+  const bulk = taskAddMode() === 'bulk';
+  form.querySelectorAll('.task-single').forEach((el) => { el.hidden = bulk; });
+  form.querySelectorAll('.task-bulk').forEach((el) => { el.hidden = !bulk; });
+  document.getElementById('repeat-every-wrap').hidden = bulk || type !== 'days';
+  document.getElementById('deadline-wrap').hidden = bulk || type !== 'none';
+}
+
+// 「まとめて」の保存: 1行に1つを選んだクエストに登録する。読み飛ばした行はトーストで知らせる
+function submitBulkTasks(form) {
+  const text = form.elements.bulk.value;
+  const category = state.categories.find((c) => c.id === form.elements.categoryId.value);
+  if (!bulkTrim(text)) { form.elements.bulk.focus(); showToast('1行に1つずつ入力してください'); return; }
+  if (!category) { showToast('先にクエスト一覧でクエストを作ってください'); return; }
+  const plan = parseBulkText(text, state.categories, state.tasks, category);
+  const skipped = Object.values(plan.skipped).reduce((a, b) => a + b, 0);
+  if (!plan.entries.length) {
+    form.elements.bulk.focus();
+    showToast(plan.skipped.duplicate === skipped && skipped > 0 ? 'すべて登録済みのやることです' : '読める行がありません（日付や難易度を確かめてください）');
+    return;
+  }
+  const at = centerOf(form.querySelector('button[type="submit"]'));
+  const result = applyBulkPlan(plan);
+  lastBulk = null; // 設定画面の「取り消す」とは別なので、そちらの取り消し対象にはしない
+  closeTaskSheet();
+  render();
+  floatText(at.x, at.y, `+${result.tasks} XP`, false, true);
+  setTimeout(pulseXpBar, 250);
+  showToast(`${result.tasks} 件を追加しました${skipped ? `（${skipped} 行は読み飛ばし）` : ''}`);
 }
 
 function readTaskForm() {
@@ -855,6 +896,11 @@ function initQuests() {
   document.getElementById('task-cancel').addEventListener('click', closeTaskSheet);
 
   const form = document.getElementById('task-form');
+  form.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener('change', () => {
+    lastAddMode = form.elements.mode.value;
+    updateTaskFormVisibility();
+    taskFormMainInput().focus();
+  }));
   form.elements.repeatType.addEventListener('change', updateTaskFormVisibility);
   // 日付やプルダウンの選択パネルが開いたままだと最初のクリックがパネルを閉じるのに使われるので、
   // 選び終えたらすぐ選択を外し、保存は押し始めた瞬間（pointerdown）にも受け付ける
@@ -874,10 +920,12 @@ function initQuests() {
     e.preventDefault();
     if (!fromPointer && Date.now() - lastSubmit < 400) {
       // pointerdown で処理した直後のクリック分は無視。入力が空のままなら、指を離したあとも入力欄にフォーカスを戻しておく
-      if (!form.elements.title.value.trim()) form.elements.title.focus();
+      const main = taskFormMainInput();
+      if (!main.value.trim()) main.focus();
       return;
     }
     lastSubmit = Date.now();
+    if (taskAddMode() === 'bulk') { submitBulkTasks(form); return; }
     const data = readTaskForm();
     if (!data.title) { form.elements.title.focus(); showToast('やることを入力してください'); return; }
     if (!data.categoryId) { showToast('先にクエスト一覧でクエストを作ってください'); return; }

@@ -50,8 +50,9 @@ function parseDeadline(str, now = new Date()) {
   return null;
 }
 
-// 文字列を解釈して「登録の計画」を返す。まだ状態は変えない
-function parseBulkText(text, categories, tasks) {
+// 文字列を解釈して「登録の計画」を返す。まだ状態は変えない。
+// fixedCategory を渡すと、すべての行をそのクエストに入れ、行は「やること：日付：難易度：メモ」として読む（追加シートの「まとめて」）
+function parseBulkText(text, categories, tasks, fixedCategory = null) {
   const categoryByName = new Map(sortedCategories().map((a) => [a.name, a]));
   // 新しいクエストの色は、まだ使われていない色からランダムに選ぶ（使い切ったら全色から）
   const usedColors = new Set(state.categories.map((a) => a.color));
@@ -90,7 +91,9 @@ function parseBulkText(text, categories, tasks) {
     if (!line) continue;
 
     // クエスト：タイトル：期限：難易度：メモ（区切りは ：, :, タブ。メモの中の区切りはそのまま残す）
-    const parts = line.split(SEPARATOR_RE).map(bulkTrim);
+    const rawParts = line.split(SEPARATOR_RE).map(bulkTrim);
+    // クエスト固定のときは、先頭にクエスト名があるものとして同じ規則で読む
+    const parts = fixedCategory ? [fixedCategory.name, ...rawParts] : rawParts;
     let categoryName = BULK_DEFAULT_CATEGORY;
     let title = '';
     let deadlineText = '';
@@ -125,7 +128,7 @@ function parseBulkText(text, categories, tasks) {
       difficulty = v;
     }
 
-    const category = resolveCategory(categoryName);
+    const category = fixedCategory ? { id: fixedCategory.id, name: fixedCategory.name } : resolveCategory(categoryName);
     const key = `${category.id || `new:${category.name}`}\n${title}`;
     if (seen.has(key) || (category.id && existingTitles.has(`${category.id}\n${title}`))) { skipped.duplicate += 1; continue; }
     seen.add(key);
