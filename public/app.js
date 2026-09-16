@@ -348,7 +348,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.23.1';
+const APP_VERSION = 'v0.23.2';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -411,9 +411,11 @@ const slide = {
   catFab: () => document.getElementById('category-add-btn'),
   main: () => document.querySelector('.main'),
   width() { return this.quests().getBoundingClientRect().width; },
-  // dx: やること画面の左端の位置（0 = 定位置、幅 = 完全に右へ出た状態）。右下の「＋」も各画面と一緒に動かす
+  // 完全に右へ出た位置。やること画面は左右 16px の余白まで紙（::before）で覆い、その左に影も付くので、幅より少し先まで動かす
+  outX() { return this.width() + 40; },
+  // dx: やること画面の左端の位置（0 = 定位置、outX = 完全に右へ出た状態）。右下の「＋」も各画面と一緒に動かす
   apply(dx) {
-    const behind = -0.3 * (this.width() - dx);
+    const behind = -0.3 * Math.max(0, this.width() - dx);
     this.quests().style.transform = `translateX(${dx}px)`;
     this.cats().style.transform = `translateX(${behind}px)`;
     this.taskFab().style.transform = `translateX(${dx}px)`;
@@ -467,7 +469,7 @@ const slide = {
 // 一覧からやること画面を開くときの自動スライド（やること: 100% → 0%、一覧: 0% → -30%）
 function slideInTasks() {
   slide.setup();
-  slide.apply(slide.width());
+  slide.apply(slide.outX());
   void slide.quests().offsetWidth; // いったん右に置いてから動かす
   slide.settle(0);
 }
@@ -482,7 +484,7 @@ function slideOutTasks() {
   slide.setup();
   slide.apply(0);
   void quests.offsetWidth;
-  slide.settle(slide.width(), showCategoryList);
+  slide.settle(slide.outX(), showCategoryList);
 }
 
 function initSwipeBack() {
@@ -536,7 +538,7 @@ function initSwipeBack() {
     const first = samples.find((p) => now - p.t <= 100) || last;
     const speed = last && first && last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0;
     const toList = dx > slide.width() * 0.35 || (speed >= 0.5 && dx > 24);
-    slide.settle(toList ? slide.width() : 0, toList ? showCategoryList : null);
+    slide.settle(toList ? slide.outX() : 0, toList ? showCategoryList : null);
   };
   quests.addEventListener('pointerup', finish);
   quests.addEventListener('pointercancel', finish);
