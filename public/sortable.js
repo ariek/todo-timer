@@ -11,7 +11,7 @@
 //
 // fixed を渡すと、それに当てはまる行は動かせず、ほかの行をその前後に割り込ませることもできない（先頭に固定された行など）
 // ignore を渡すと、その中で押しても長押しにしない（行の下の層のボタンなど）
-const LONG_PRESS_MS = 400;
+const LONG_PRESS_MS = 300;
 let sortableActive = 0; // ドラッグ中の一覧の数。横スワイプなどが横取りしないように見る
 function isSortableDragging() { return sortableActive > 0; }
 
