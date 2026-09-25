@@ -44,6 +44,19 @@ function deleteCategory(categoryId) {
   saveState();
 }
 
+// 確認してから削除する（編集シートの「削除」と、一覧の行の下の層の「削除」で共用）。削除したら true
+async function confirmDeleteCategory(categoryId) {
+  const category = state.categories.find((a) => a.id === categoryId);
+  if (!category) return false;
+  const n = state.tasks.filter((t) => t.categoryId === categoryId).length;
+  const msg = n > 0
+    ? `「${category.name}」と、所属するやること ${n} 件をまとめて削除します。`
+    : `「${category.name}」を削除します。`;
+  if (!(await askConfirm(msg, { ok: '削除する', danger: true }))) return false;
+  deleteCategory(categoryId);
+  return true;
+}
+
 // 並び順を id の配列どおりにする（ドラッグ＆ドロップの結果を反映）
 function reorderCategories(ids) {
   const byId = new Map(state.categories.map((c) => [c.id, c]));
@@ -248,15 +261,7 @@ function initSettings() {
     }
   });
   document.getElementById('category-delete').addEventListener('click', async () => {
-    const id = form.elements.id.value;
-    const category = state.categories.find((a) => a.id === id);
-    if (!category) return;
-    const n = state.tasks.filter((t) => t.categoryId === id).length;
-    const msg = n > 0
-      ? `「${category.name}」と、所属するやること ${n} 件をまとめて削除します。`
-      : `「${category.name}」を削除します。`;
-    if (!(await askConfirm(msg, { ok: '削除する', danger: true }))) return;
-    deleteCategory(id);
+    if (!(await confirmDeleteCategory(form.elements.id.value))) return;
     closeCategorySheet();
     render();
   });

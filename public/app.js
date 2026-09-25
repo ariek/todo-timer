@@ -346,7 +346,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.26.3';
+const APP_VERSION = 'v0.27.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -505,12 +505,14 @@ function initSwipeBack() {
   // 横と決めた指の動きはブラウザに渡さず、縦スクロールが混ざらないようにする（最初の touchmove から止める必要がある）
   quests.addEventListener('touchmove', (e) => {
     if (!sw || e.touches.length !== 1) return;
+    if (isSortableDragging()) { sw = null; return; } // 長押しで行をつかんでいる
     const t = e.touches[0];
     decide(t.clientX - sw.x0, t.clientY - sw.y0);
     if (sw.dir === 'h' && e.cancelable) e.preventDefault();
   }, { passive: false });
   quests.addEventListener('pointermove', (e) => {
     if (!sw || e.pointerId !== sw.id) return;
+    if (isSortableDragging()) { sw = null; return; } // 長押しで行をつかんでいる
     const dx = e.clientX - sw.x0;
     const dy = e.clientY - sw.y0;
     decide(dx, dy);

@@ -358,7 +358,7 @@ button {
   transition: height 0.2s ease-in, padding 0.2s ease-in, margin 0.2s ease-in, opacity 0.15s ease-in, border-width 0.2s ease-in;
 }
 /* 並べ替えのドロップ: 収まった行が「トンッ」と落ち着く */
-.task-row.is-dropped, .category-row.is-dropped { animation: row-settle 0.28s cubic-bezier(0.2, 1.2, 0.4, 1); }
+.task-row.is-dropped, .category-row.is-dropped > .category-front { animation: row-settle 0.28s cubic-bezier(0.2, 1.2, 0.4, 1); }
 @keyframes row-settle {
   from { transform: scale(1.03) translate(-2px, -2px); box-shadow: 6px 6px 0 var(--cat-color, var(--line)); }
   to { transform: none; box-shadow: 3px 3px 0 var(--cat-color, var(--line)); }
@@ -702,7 +702,10 @@ button.task-check:active { transform: scale(0.9); }
   gap: 8px;
 }
 
-.category-row {
+.category-row { position: relative; } /* 表（.category-front）と下の層（.row-under）の入れ物 */
+.category-front {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -712,7 +715,38 @@ button.task-check:active { transform: scale(0.9); }
   border-radius: 14px 18px 16px 18px / 18px 14px 18px 16px;
   box-shadow: 3px 3px 0 var(--cat-color, var(--line)); /* 影はクエストの色 */
 }
-.category-row:has(> .category-body:active) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--cat-color, var(--line)); } /* 押すと行ごと沈む */
+.category-front:has(> .category-body:active) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--cat-color, var(--line)); } /* 押すと行ごと沈む */
+.category-front.is-settling { transition: transform 0.2s ease-out; }
+/* 下の層: 表を横にずらしたときだけ見える（左: 一番上へ・一番下へ、右: 削除・編集） */
+.row-under {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  visibility: hidden;
+}
+.row-under--left { left: 0; }
+.row-under--right { right: 0; }
+.category-row.is-reveal-left .row-under--left, .category-row.is-reveal-right .row-under--right { visibility: visible; }
+.row-act {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ink);
+  border-radius: 12px 14px 12px 14px / 14px 12px 14px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--line);
+}
+.row-act .icon { width: 20px; height: 20px; --icon-fill-a: var(--paper); stroke-width: 2; }
+.row-act.is-danger { color: #c85c4a; background: #fbe9e5; }
+.row-act:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--line); }
+.category-row, .task-row { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; } /* 長押しで文字を選択させない */
 
 .category-body {
   flex: 1;
@@ -803,6 +837,8 @@ button.task-check:active { transform: scale(0.9); }
   box-shadow: 5px 6px 0 var(--line);
   cursor: grabbing;
 }
+.category-row.is-dragging { box-shadow: none; }
+.category-row.is-dragging .category-front { box-shadow: 5px 6px 0 var(--line); }
 .is-dragging .drag-grip { cursor: grabbing; }
 
 
@@ -1151,7 +1187,7 @@ button.task-check:active { transform: scale(0.9); }
 
 @media (prefers-reduced-motion: reduce) {
   .modal, .clear-card, .lv-gauge.is-gaining, .clear-num.is-boing { animation: none; }
-  .task-row.is-entering, .task-row.is-dropped, .category-row.is-dropped, .qt.is-paused .qt-fill, .qt.is-shake, #focus-quests.is-bump, .note-card.is-growing { animation: none; }
+  .task-row.is-entering, .task-row.is-dropped, .category-row.is-dropped > .category-front, .qt.is-paused .qt-fill, .qt.is-shake, #focus-quests.is-bump, .note-card.is-growing { animation: none; }
   .quest-details > :not(summary), .task-row.is-leaving { transition: none; }
 }
 
@@ -1393,3 +1429,9 @@ button.task-check:active { transform: scale(0.9); }
 }
 .icon-choice .icon { width: 22px; height: 22px; --icon-fill-a: var(--cat-color); stroke-width: 2; }
 .icon-choice.is-selected { border-color: var(--ink); background: var(--paper); box-shadow: 2px 2px 0 var(--ink); }
+
+/* タッチ端末: 並べ替えは行の長押し、編集・削除・移動は横スワイプで出るボタン。つまみとペンは出さない
+   （.drag-grip の display より後ろに置いて上書きする） */
+@media (hover: none) and (pointer: coarse) {
+  .drag-grip, .category-edit { display: none; }
+}

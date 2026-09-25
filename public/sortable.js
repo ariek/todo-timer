@@ -6,10 +6,20 @@
 //   ドラッグ状態が残ったままになることがあったため）
 // イベントは window で受けるので、一覧の外で指を離しても必ず終わる。
 
+// 始め方は2つ: つまみ（grip）を押した瞬間（マウス向け。タッチ端末ではつまみを隠している）と、
+// 行の長押し（タッチ向け。つまみが行の中にある = 動かせる行だけ）。長押しのあとの click は行に届かせない
+//
 // fixed を渡すと、それに当てはまる行は動かせず、ほかの行をその前後に割り込ませることもできない（先頭に固定された行など）
-function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel = null, onDrop }) {
+// ignore を渡すと、その中で押しても長押しにしない（行の下の層のボタンなど）
+const LONG_PRESS_MS = 400;
+let sortableActive = 0; // ドラッグ中の一覧の数。横スワイプなどが横取りしないように見る
+function isSortableDragging() { return sortableActive > 0; }
+
+function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel = null, ignore: ignoreSel = null, onDrop }) {
   const main = container.closest('.main') || document.scrollingElement;
   let drag = null;
+  let pending = null; // 長押し待ち { row, x, y, pointerId, timer }
+  let suppressClickUntil = 0;
 
   const rowsOf = (list) => [...list.children].filter((el) => el.matches(rowSel));
   const isFixed = (el) => !!fixedSel && el.matches(fixedSel);
@@ -58,8 +68,10 @@ function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel =
 
   const finish = () => {
     if (!drag) return;
-    const { row, list, rows, startIndex, targetIndex } = drag;
+    const { row, list, rows, startIndex, targetIndex, viaLongPress } = drag;
     drag = null;
+    sortableActive = Math.max(0, sortableActive - 1);
+    if (viaLongPress) suppressClickUntil = Date.now() + 400; // 指を離したときの click を行（開くボタンなど）に届かせない
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('pointercancel', onUp);
@@ -86,24 +98,66 @@ function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel =
     finish();
   };
 
-  container.addEventListener('pointerdown', (e) => {
-    const grip = e.target.closest(gripSel);
-    if (!grip) return;
+  const startDrag = (row, clientY, pointerId, viaLongPress) => {
     if (drag) finish(); // 前のドラッグが残っていたら片付けてから始める
-    const row = grip.closest(rowSel);
-    if (!row || isFixed(row)) return;
     const list = row.parentElement;
-    e.preventDefault();
     const rows = measure(list);
     const startIndex = rows.findIndex((r) => r.el === row);
     if (startIndex < 0) return;
     const gap = rows.length > 1 ? Math.max(0, rows[1].top - rows[0].top - rows[0].height) : 0;
-    drag = { row, list, rows, startIndex, targetIndex: startIndex, rowH: rows[startIndex].height, gap, grabY: listY(list, e.clientY) - rows[startIndex].top, pointerId: e.pointerId };
+    drag = { row, list, rows, startIndex, targetIndex: startIndex, rowH: rows[startIndex].height, gap, grabY: listY(list, clientY) - rows[startIndex].top, pointerId, viaLongPress };
+    sortableActive += 1;
     row.classList.add('is-dragging');
     list.classList.add('is-reordering');
+    if (viaLongPress && navigator.vibrate) navigator.vibrate(15); // つかんだ合図
     window.addEventListener('pointermove', onMove, { passive: false });
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
     window.addEventListener('blur', onUp);
+  };
+
+  // 長押し待ち: 指が動いたり離れたりしたらやめる（スクロールや横スワイプに任せる）
+  const cancelPending = () => {
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pending = null;
+    window.removeEventListener('pointermove', onPendingMove);
+    window.removeEventListener('pointerup', cancelPending);
+    window.removeEventListener('pointercancel', cancelPending);
+  };
+  const onPendingMove = (e) => {
+    if (!pending || e.pointerId !== pending.pointerId) return;
+    if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) > 8) cancelPending();
+  };
+
+  container.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest(gripSel);
+    if (grip) {
+      const row = grip.closest(rowSel);
+      if (!row || isFixed(row)) return;
+      e.preventDefault();
+      startDrag(row, e.clientY, e.pointerId, false);
+      return;
+    }
+    // タッチ端末: 動かせる行（つまみを持つ行）を長押しするとつかむ
+    if (e.pointerType !== 'touch') return;
+    const row = e.target.closest(rowSel);
+    if (!row || isFixed(row) || !row.querySelector(gripSel)) return;
+    if (e.target.closest('a, input, textarea, select') || (ignoreSel && e.target.closest(ignoreSel))) return;
+    cancelPending();
+    const { clientY, pointerId } = e;
+    pending = {
+      row, x: e.clientX, y: e.clientY, pointerId,
+      timer: setTimeout(() => { cancelPending(); startDrag(row, clientY, pointerId, true); }, LONG_PRESS_MS),
+    };
+    window.addEventListener('pointermove', onPendingMove);
+    window.addEventListener('pointerup', cancelPending);
+    window.addEventListener('pointercancel', cancelPending);
   });
+  // ドラッグ中の指の動きはブラウザに渡さない（縦スクロールにならないように）
+  container.addEventListener('touchmove', (e) => { if (drag && e.cancelable) e.preventDefault(); }, { passive: false });
+  container.addEventListener('click', (e) => {
+    if (Date.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  container.addEventListener('contextmenu', (e) => { if (pending || drag) e.preventDefault(); });
 }

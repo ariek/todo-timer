@@ -32,7 +32,7 @@ required = [
     'initTimer', 'initSession', 'startSession', 'beginQuest', 'pauseQuest', 'resumeQuest', 'completeQuest', 'quitSession', 'endSession',
     'closeSummary', 'tickSession', 'ensureSessionLoop', 'stopSessionLoop', 'renderTimerTick', 'renderTimerMini', 'pickNextQuest',
     'questRemainingSec', 'sessionActive', 'sessionPhase', 'digitsHtml', 'playTone', 'scheduleCountdownSounds', 'scheduleToneAt', 'cancelScheduledSounds', 'skipQuest', 'adjustSeconds',
-    'initSettings', 'renderSettings', 'sortedCategories', 'reorderCategories', 'makeSortable', 'deleteCategory', 'upsertCategory', 'importJson', 'exportJson', 'resetAll',
+    'initSettings', 'renderSettings', 'sortedCategories', 'reorderCategories', 'confirmDeleteCategory', 'isSortableDragging', 'moveCategoryToEdge', 'setReveal', 'closeRevealed', 'initCategorySwipe', 'makeSortable', 'deleteCategory', 'upsertCategory', 'importJson', 'exportJson', 'resetAll',
     'parseBulkText', 'applyBulkPlan', 'categoryAddMode', 'categoryFormMainInput', 'updateCategoryFormVisibility', 'submitBulkCategories',
     'initLog', 'formatDuration', 'logDayLabel', 'renderLog', 'initEffects', 'burstAt', 'floatText', 'pulseXpBar', 'centerOf', 'showClearModal', 'runClearTimeline', 'stopClearTimeline', 'hideClearModal', 'setModalVisible',
     'clearAnimationMs', 'initDialog', 'askConfirm', 'showAlert',
