@@ -1050,8 +1050,9 @@ button.task-check:active { transform: scale(0.9); }
 #view-quests { position: relative; min-height: 100%; } /* 内容が短くても覆いが画面の下まで届くように */
 .session-shade {
   position: absolute;
-  left: -16px;
-  right: -16px;
+  /* 左右は本文（.main）の余白まで覆う。PC 幅では本文が中央寄せで余白が広いので、大きくはみ出させて .main の overflow-x: hidden で切る */
+  left: -100vw;
+  right: -100vw;
   top: -16px;
   bottom: -32px; /* 本文の下余白と同じ。これ以上はみ出すとスクロールが増える */
   background: rgba(43, 38, 34, 0.55);
