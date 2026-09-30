@@ -271,6 +271,100 @@ function openTasks(categoryId) {
   renderQuests();
   switchTab('categories');
   if (animate) slideInTasks();
+  pushScreen(); // ブラウザの戻るで一覧に戻れるように（履歴の操作から来たときは積まない）
+}
+
+// --- ブラウザの履歴（戻る / 進む）-----------------------------------------
+// 画面の切り替え（一覧 → やること画面、記録・設定を開く）を履歴に積み、ブラウザの戻るで前の画面に戻れるようにする。
+// 起動時の画面は置き換え（base）で入れ、それより前には戻さない（戻るとサイトを離れる、いつものブラウザの動き）。
+// アプリ内の戻る（やること画面の ‹、右スワイプ、記録・設定の ×）は、履歴に積んだ分なら history.back() で戻し、
+// 履歴の変化（popstate）を受けて画面を動かす。そうでなければその場で画面を戻し、履歴の現在の項目を置き換える
+let handlingPop = false; // popstate を処理している間は履歴に積まない
+
+function screenState() {
+  const base = ui.showTasks ? { screen: 'tasks', category: ui.categoryFilter } : { screen: 'list' };
+  return ui.tab === 'categories' ? base : { screen: ui.tab, under: base };
+}
+function pushScreen() {
+  if (handlingPop) return;
+  try { history.pushState({ app: true, ...screenState() }, ''); } catch (err) { /* 履歴が使えなくても続行 */ }
+}
+function replaceScreen(base = false) {
+  try { history.replaceState({ app: true, base, ...screenState() }, ''); } catch (err) { /* 履歴が使えなくても続行 */ }
+}
+// いまの履歴の項目が「自分で積んだ、起点でない」ものなら、history.back() で前の画面に戻せる
+function canHistoryBack(screens) {
+  const s = history.state;
+  return !!(s && s.app && !s.base && screens.includes(s.screen));
+}
+
+// やること画面から一覧へ（‹、右スワイプ、「ほかのクエストをやる」）。alreadySlid: 指で最後まで動かし終えている
+function leaveTasksToList(alreadySlid = false) {
+  if (!handlingPop && canHistoryBack(['tasks'])) {
+    if (alreadySlid) showCategoryList(); // 先に画面を戻しておけば、popstate では何もしない
+    history.back();
+    return;
+  }
+  if (alreadySlid) showCategoryList(); else slideOutTasks();
+  // 横スライドの途中でも、履歴の項目は一覧として置き換える（起点のまま）
+  try { history.replaceState({ app: true, base: true, screen: 'list' }, ''); } catch (err) { /* 履歴が使えなくても続行 */ }
+}
+
+// 記録・設定の × 
+function closePage() {
+  if (!handlingPop && canHistoryBack(['log', 'settings'])) { history.back(); return; }
+  switchTab('categories');
+  replaceScreen();
+}
+
+// 履歴の項目に合わせて画面を出す（戻る・進むの両方）
+function applyHistoryState(s) {
+  closeOverlays();
+  const target = s.screen === 'log' || s.screen === 'settings' ? s.under : s;
+  const toTasks = target && target.screen === 'tasks';
+  if (!toTasks && sessionActive()) {
+    // 作業中はやること画面から離れない（戻っても留まり、履歴に積み直す）
+    history.pushState({ app: true, ...screenState() }, '');
+    showToast('作業中は戻れません');
+    return;
+  }
+  if (s.screen === 'log' || s.screen === 'settings') {
+    ui.showTasks = toTasks;
+    if (toTasks) ui.categoryFilter = target.category || null;
+    saveScreen();
+    if (toTasks) renderQuests();
+    switchTab(s.screen);
+    return;
+  }
+  if (toTasks) {
+    if (ui.tab === 'categories' && !ui.showTasks) { openTasks(target.category || null); return; } // 一覧から（横スライド）
+    ui.showTasks = true;
+    ui.categoryFilter = target.category || null;
+    saveScreen();
+    renderQuests();
+    switchTab('categories'); // 記録・設定を閉じてやること画面へ
+    return;
+  }
+  // 一覧へ
+  if (ui.tab !== 'categories') { ui.showTasks = false; saveScreen(); switchTab('categories'); return; } // 記録・設定を閉じる
+  if (ui.showTasks) slideOutTasks(); // やること画面から（横スライド）
+}
+
+// 戻る・進むで画面が変わる前に、開いているシートとメモを閉じる
+function closeOverlays() {
+  ['task-sheet', 'category-sheet'].forEach((id) => { const el = document.getElementById(id); if (el && !el.hidden) hideSheet(el); });
+  const note = document.getElementById('note-modal');
+  if (note && !note.hidden) note.hidden = true;
+}
+
+function initHistory() {
+  replaceScreen(true); // 起動時の画面が起点
+  window.addEventListener('popstate', (e) => {
+    const s = e.state;
+    if (!s || !s.app) return; // 自分が積んだものでなければ触らない
+    handlingPop = true;
+    try { applyHistoryState(s); } finally { handlingPop = false; }
+  });
 }
 
 // クエスト一覧へ戻る
@@ -346,7 +440,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.28.0';
+const APP_VERSION = 'v0.29.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -538,7 +632,7 @@ function initSwipeBack() {
     const first = samples.find((p) => now - p.t <= 100) || last;
     const speed = last && first && last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0;
     const toList = dx > slide.width() * 0.35 || (speed >= 0.5 && dx > 24);
-    slide.settle(toList ? slide.outX() : 0, toList ? showCategoryList : null);
+    slide.settle(toList ? slide.outX() : 0, toList ? () => leaveTasksToList(true) : null);
   };
   quests.addEventListener('pointerup', finish);
   quests.addEventListener('pointercancel', finish);
@@ -557,9 +651,10 @@ function init() {
     const btn = e.target.closest('.tab');
     if (!btn) return;
     switchTab(btn.dataset.tab);
+    pushScreen(); // ブラウザの戻るで閉じられるように
   });
   // 記録・設定の × で元の画面（一覧またはやること画面）へ
-  document.querySelectorAll('[data-page-close]').forEach((b) => b.addEventListener('click', () => switchTab('categories')));
+  document.querySelectorAll('[data-page-close]').forEach((b) => b.addEventListener('click', closePage));
 
   initOverview();
   initSwipeBack();
@@ -575,6 +670,7 @@ function init() {
   if (sessionActive()) ui.showTasks = true; // 作業中はやること画面から始める
   if (ui.showTasks) renderQuests();
   switchTab('categories');
+  initHistory();
 
   document.getElementById('app-version').textContent = `やることクエスト ${APP_VERSION}`;
   // iOS はビューポート指定だけではピンチズームを止められないので、ジェスチャー自体を止める

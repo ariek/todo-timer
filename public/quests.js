@@ -853,9 +853,9 @@ function initQuests() {
   document.getElementById('note-close').addEventListener('click', hideNoteModal);
   const noteModal = document.getElementById('note-modal');
   noteModal.addEventListener('click', (e) => { if (e.target === noteModal) hideNoteModal(); });
-  document.getElementById('tasks-back').addEventListener('click', () => slideOutTasks()); // 右スワイプと同じ動きで一覧へ
+  document.getElementById('tasks-back').addEventListener('click', () => leaveTasksToList()); // 右スワイプと同じ動きで一覧へ（ブラウザの履歴も戻す）
   document.getElementById('focus-quests').addEventListener('click', (e) => {
-    if (e.target.closest('[data-back-to-list]')) slideOutTasks(); // 戻るボタンと同じ横スライドで一覧へ
+    if (e.target.closest('[data-back-to-list]')) leaveTasksToList(); // 戻るボタンと同じ
   });
   makeSortable(document.getElementById('view-quests'), {
     row: '.task-row',
