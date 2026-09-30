@@ -6,8 +6,8 @@
 //   ドラッグ状態が残ったままになることがあったため）
 // イベントは window で受けるので、一覧の外で指を離しても必ず終わる。
 
-// 始め方は2つ: つまみ（grip）を押した瞬間（マウス向け。タッチ端末ではつまみを隠している）と、
-// 行の長押し（タッチ向け。つまみが行の中にある = 動かせる行だけ）。長押しのあとの click は行に届かせない
+// 始め方は3つ: つまみ（grip）を押した瞬間、行の長押し（タッチ。つまみが行の中にある = 動かせる行だけ）、
+// 行をそのまま押して縦に動かす（マウス。横に動かしたら横スワイプに任せる）。つかんで離したあとの click は行に届かせない
 //
 // fixed を渡すと、それに当てはまる行は動かせず、ほかの行をその前後に割り込ませることもできない（先頭に固定された行など）
 // ignore を渡すと、その中で押しても長押しにしない（行の下の層のボタンなど）
@@ -109,7 +109,7 @@ function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel =
     sortableActive += 1;
     row.classList.add('is-dragging');
     list.classList.add('is-reordering');
-    if (viaLongPress && navigator.vibrate) navigator.vibrate(15); // つかんだ合図
+    if (viaLongPress && navigator.vibrate) navigator.vibrate(15); // つかんだ合図（振動のある端末だけ）
     window.addEventListener('pointermove', onMove, { passive: false });
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
@@ -127,7 +127,17 @@ function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel =
   };
   const onPendingMove = (e) => {
     if (!pending || e.pointerId !== pending.pointerId) return;
-    if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) > 8) cancelPending();
+    const dx = e.clientX - pending.x;
+    const dy = e.clientY - pending.y;
+    if (Math.hypot(dx, dy) <= (pending.mouse ? 6 : 8)) return;
+    if (pending.mouse && Math.abs(dy) >= Math.abs(dx)) {
+      // マウス: 縦に動き始めたらつかむ（押した位置を基準に）
+      const { row, y, pointerId } = pending;
+      cancelPending();
+      startDrag(row, y, pointerId, true);
+      return;
+    }
+    cancelPending();
   };
 
   container.addEventListener('pointerdown', (e) => {
@@ -139,16 +149,17 @@ function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel =
       startDrag(row, e.clientY, e.pointerId, false);
       return;
     }
-    // タッチ端末: 動かせる行（つまみを持つ行）を長押しするとつかむ
-    if (e.pointerType !== 'touch') return;
+    // 動かせる行（つまみを持つ行）を、タッチ端末では長押しでつかむ。マウスでは押して縦に動かし始めたらつかむ
+    const touch = e.pointerType === 'touch';
+    if (!touch && e.button !== 0) return;
     const row = e.target.closest(rowSel);
     if (!row || isFixed(row) || !row.querySelector(gripSel)) return;
     if (e.target.closest('a, input, textarea, select') || (ignoreSel && e.target.closest(ignoreSel))) return;
     cancelPending();
     const { clientY, pointerId } = e;
     pending = {
-      row, x: e.clientX, y: e.clientY, pointerId,
-      timer: setTimeout(() => { cancelPending(); startDrag(row, clientY, pointerId, true); }, LONG_PRESS_MS),
+      row, x: e.clientX, y: e.clientY, pointerId, mouse: !touch,
+      timer: touch ? setTimeout(() => { cancelPending(); startDrag(row, clientY, pointerId, true); }, LONG_PRESS_MS) : null,
     };
     window.addEventListener('pointermove', onPendingMove);
     window.addEventListener('pointerup', cancelPending);

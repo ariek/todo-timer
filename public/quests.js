@@ -472,9 +472,8 @@ function taskRow(entry, categoryName, now, mode, canDrag = false) {
   // やることの行は、セッション中でなければつまみ（≡）で並べ替えられる。
   // 期限切れは先頭に固定なので出さない。動かせる行が1つしかない一覧でも出さない（canDrag）
   const fixed = mode === 'todo' && isPinned(task, now);
-  const grip = mode === 'todo' && canDrag && !sessionActive() && !fixed
-    ? '<span class="drag-grip" aria-label="押したまま動かして並べ替え" title="押したまま動かして並べ替え"><svg class="icon" aria-hidden="true"><use href="#i-grip"/></svg></span>'
-    : '';
+  // 動かせる行の印（表示はしない。sortable が見る）
+  const grip = mode === 'todo' && canDrag && !sessionActive() && !fixed ? '<span class="drag-grip" hidden></span>' : '';
   return `<li class="task-row ${fixed ? 'is-fixed' : ''} ${isFocus ? 'is-focus' : ''}" data-status="${status}" data-due="${mode === 'todo' ? dueKind(task, now) : ''}" data-id="${task.id}">
     ${action}
     <button class="task-body" data-edit="${task.id}">

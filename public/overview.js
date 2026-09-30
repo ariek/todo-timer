@@ -2,7 +2,6 @@
 // 行をタップするとそのクエストのやること画面へ。先頭の「すべて」は全クエストのやること画面へ
 
 const ICON_EDIT = '<svg class="icon" aria-hidden="true"><use href="#c-pen"/></svg>';
-const ICON_GRIP = '<svg class="icon" aria-hidden="true"><use href="#i-grip"/></svg>';
 
 function renderOverview() {
   const now = new Date();
@@ -52,8 +51,7 @@ function renderOverview() {
           ${categoryIconHtml(cat, 'cat-icon cat-icon--lg')}
           <span class="category-text"><span class="category-name">${name}</span><span class="category-meta">${meta(c)}</span></span>
         </button>
-        <button class="category-edit" data-category-edit="${cat.id}" aria-label="${name}を編集" title="編集">${ICON_EDIT}</button>
-        <span class="drag-grip" aria-label="押したまま動かして並べ替え" title="押したまま動かして並べ替え">${ICON_GRIP}</span>
+        <span class="drag-grip" hidden></span><!-- 動かせる行の印（表示はしない。sortable が見る） -->
       </div>
     </li>`;
   });
@@ -69,7 +67,8 @@ function moveCategoryToEdge(id, edge) {
   reorderCategories(edge === 'top' ? [id, ...ids] : [...ids, id]);
 }
 
-// --- 行の横スワイプ（タッチ端末）: 表のカードを指で横にずらし、下の層のボタンを見せる ---------
+// --- 行の横スワイプ: 表のカードを指（またはマウス）で横にずらし、下の層のボタンを見せる ---------
+// マウスは 6px 動いてから向きを決める（クリックと区別する）。縦に動いたら並べ替え（sortable）に任せる
 const REVEAL_W = 100; // 下の層のボタン2つぶん
 let openRow = null; // 開いている（ずれたままの）行
 
@@ -89,19 +88,22 @@ function closeRevealed() {
 }
 
 function initCategorySwipe(list) {
-  let sw = null; // { row, id, x0, y0, base, dir, x }
+  let sw = null; // { row, id, x0, y0, base, dir, x, mouse }
+  let suppressClickUntil = 0; // 横に引いて離した直後の click は行に届かせない
   const decide = (dx, dy) => {
     if (!sw || sw.dir) return;
     if (dx === 0 && dy === 0) return;
+    if (sw.mouse && Math.hypot(dx, dy) < 6) return;
     sw.dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
   };
   list.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'touch') return;
+    const touch = e.pointerType === 'touch';
+    if (!touch && e.button !== 0) return;
     const row = e.target.closest('.category-row');
     if (openRow && row !== openRow) closeRevealed(); // ほかの行に触れたら閉じる
     if (!row || row.classList.contains('is-fixed') || e.target.closest('.row-under')) return;
     const base = row === openRow ? (row.classList.contains('is-reveal-left') ? REVEAL_W : -REVEAL_W) : 0;
-    sw = { row, id: e.pointerId, x0: e.clientX, y0: e.clientY, base, dir: null, x: base };
+    sw = { row, id: e.pointerId, x0: e.clientX, y0: e.clientY, base, dir: null, x: base, mouse: !touch };
   });
   // 横と決めた指の動きはブラウザに渡さない（縦スクロールが混ざらないように）
   list.addEventListener('touchmove', (e) => {
@@ -111,9 +113,9 @@ function initCategorySwipe(list) {
     decide(t.clientX - sw.x0, t.clientY - sw.y0);
     if (sw.dir === 'h' && e.cancelable) e.preventDefault();
   }, { passive: false });
-  list.addEventListener('pointermove', (e) => {
+  window.addEventListener('pointermove', (e) => {
     if (!sw || e.pointerId !== sw.id) return;
-    if (isSortableDragging()) { sw = null; return; } // 長押しで行をつかんだ
+    if (isSortableDragging()) { sw = null; return; } // 長押し（マウスは縦の動き）で行をつかんだ
     const dx = e.clientX - sw.x0;
     const dy = e.clientY - sw.y0;
     decide(dx, dy);
@@ -127,19 +129,21 @@ function initCategorySwipe(list) {
   });
   const finish = (e) => {
     if (!sw || (e && e.pointerId !== undefined && e.pointerId !== sw.id)) return;
-    const { row, x, dir } = sw;
+    const { row, x, dir, mouse } = sw;
     sw = null;
     if (dir !== 'h') return;
+    if (mouse) suppressClickUntil = Date.now() + 300;
     let to = 0;
     if (x > REVEAL_W / 2) to = REVEAL_W;
     else if (x < -REVEAL_W / 2) to = -REVEAL_W;
     setReveal(row, to, true);
     openRow = to ? row : null;
   };
-  list.addEventListener('pointerup', finish);
-  list.addEventListener('pointercancel', finish);
-  // 開いている行の表をタップしたら閉じるだけ（やること画面は開かない）
+  window.addEventListener('pointerup', finish);
+  window.addEventListener('pointercancel', finish);
+  // 横に引いた直後の click は無視。開いている行の表をタップしたら閉じるだけ（やること画面は開かない）
   list.addEventListener('click', (e) => {
+    if (Date.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); return; }
     const row = e.target.closest('.category-row');
     if (openRow && row === openRow && !e.target.closest('.row-under')) { e.stopPropagation(); e.preventDefault(); closeRevealed(); }
   }, true);
