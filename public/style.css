@@ -763,21 +763,6 @@ button.task-check:active { transform: scale(0.9); }
 .category-meta { font-size: 12px; color: var(--ink-soft); }
 .category-urgent { color: #c85c4a; font-weight: 700; }
 
-.category-edit {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.8px solid var(--line);
-  border-radius: 10px 12px 10px 12px / 12px 10px 12px 10px;
-  background: var(--bg);
-  color: var(--ink-soft);
-}
-.category-edit .icon { width: 18px; height: 18px; --icon-fill-a: var(--paper); stroke-width: 2; }
-.category-edit:active { background: var(--line); }
-
 /* 「すべて」の行 */
 .category-row--all { --cat-color: var(--line); }
 .category-row--all .cat-icon { background: var(--paper); }
@@ -812,22 +797,8 @@ button.task-check:active { transform: scale(0.9); }
 }
 .tasks-heading span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* 並べ替えのつまみ。押したまま動かせるよう、ここではブラウザのスクロールを止める */
-.drag-grip {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin-right: -8px;
-  color: var(--ink-soft);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.drag-grip .icon { width: 24px; height: 24px; }
+/* 動かせる行の印（見えない。行そのものを押して動かす） */
+.drag-grip { display: none; }
 .is-reordering { user-select: none; -webkit-user-select: none; }
 /* ドラッグ中、ほかの行はすっと場所を空ける */
 .is-reordering > :not(.is-dragging) { transition: transform 0.15s ease; }
@@ -839,7 +810,6 @@ button.task-check:active { transform: scale(0.9); }
 }
 .category-row.is-dragging { box-shadow: none; }
 .category-row.is-dragging .category-front { box-shadow: 5px 6px 0 var(--line); }
-.is-dragging .drag-grip { cursor: grabbing; }
 
 
 /* 記録画面 */
@@ -1430,8 +1400,8 @@ button.task-check:active { transform: scale(0.9); }
 .icon-choice .icon { width: 22px; height: 22px; --icon-fill-a: var(--cat-color); stroke-width: 2; }
 .icon-choice.is-selected { border-color: var(--ink); background: var(--paper); box-shadow: 2px 2px 0 var(--ink); }
 
-/* タッチ端末: 並べ替えは行の長押し、編集・削除・移動は横スワイプで出るボタン。つまみとペンは出さない
-   （.drag-grip の display より後ろに置いて上書きする） */
-@media (hover: none) and (pointer: coarse) {
-  .drag-grip, .category-edit { display: none; }
+/* マウス: 動かせる行（印を持つ行）はそのまま押して動かせる。縦に動かすと並べ替え、クエストの行は横に引くと下の層のボタン */
+@media (hover: hover) {
+  .category-row:has(.drag-grip) .category-front, .task-row:has(.drag-grip) { cursor: grab; }
+  .category-front .category-body, .task-row .task-body { cursor: pointer; }
 }

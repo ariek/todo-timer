@@ -346,7 +346,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.27.1';
+const APP_VERSION = 'v0.28.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -499,7 +499,7 @@ function initSwipeBack() {
   quests.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'touch' || sw) return;
     if (sessionActive()) return; // 作業中は戻れない
-    if (e.target.closest('.drag-grip, .sheet-backdrop, a, input, textarea, select')) return;
+    if (e.target.closest('.sheet-backdrop, a, input, textarea, select')) return;
     sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dir: null, active: false, samples: [] };
   });
   // 横と決めた指の動きはブラウザに渡さず、縦スクロールが混ざらないようにする（最初の touchmove から止める必要がある）
