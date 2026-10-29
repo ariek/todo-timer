@@ -469,19 +469,54 @@ function taskRow(entry, categoryName, now, mode, canDrag = false) {
   } else {
     action = categoryIconHtml(cat, 'cat-icon cat-icon--row'); // クエストの色とアイコン
   }
-  // やることの行は、セッション中でなければつまみ（≡）で並べ替えられる。
-  // 期限切れは先頭に固定なので出さない。動かせる行が1つしかない一覧でも出さない（canDrag）
+  // やることの行は、セッション中でなければ動かして並べ替えられる（行を押して縦に動かす / 長押し）。
+  // 期限切れは先頭に固定なので動かせない。動かせる行が1つしかない一覧でも動かせない（canDrag）
   const fixed = mode === 'todo' && isPinned(task, now);
+  const movable = mode === 'todo' && canDrag && !sessionActive() && !fixed;
   // 動かせる行の印（表示はしない。sortable が見る）
-  const grip = mode === 'todo' && canDrag && !sessionActive() && !fixed ? '<span class="drag-grip" hidden></span>' : '';
+  const grip = movable ? '<span class="drag-grip" hidden></span>' : '';
+  // 行は「表（カード）」と「下の層」の2枚。横にずらすと下の層のボタンが見える（作業中は出さない）
+  // 右へ → 左端に「一番上へ」「一番下へ」（動かせる行だけ）、左へ → 右端に「削除」「編集」
+  const title = escapeHtml(task.title);
+  const underLeft = movable ? `<div class="row-under row-under--left">
+      <button class="row-act" data-task-top="${task.id}" aria-label="${title}を一番上に移動" title="一番上に移動"><svg class="icon" aria-hidden="true"><use href="#i-to-top"/></svg></button>
+      <button class="row-act" data-task-bottom="${task.id}" aria-label="${title}を一番下に移動" title="一番下に移動"><svg class="icon" aria-hidden="true"><use href="#i-to-bottom"/></svg></button>
+    </div>` : '';
+  const underRight = sessionActive() ? '' : `<div class="row-under row-under--right">
+      <button class="row-act is-danger" data-task-delete="${task.id}" aria-label="${title}を削除" title="削除"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
+      <button class="row-act" data-edit="${task.id}" aria-label="${title}を編集" title="編集"><svg class="icon" aria-hidden="true"><use href="#c-pen"/></svg></button>
+    </div>`;
   return `<li class="task-row ${fixed ? 'is-fixed' : ''} ${isFocus ? 'is-focus' : ''}" data-status="${status}" data-due="${mode === 'todo' ? dueKind(task, now) : ''}" data-id="${task.id}">
-    ${action}
-    <button class="task-body" data-edit="${task.id}">
-      <span class="task-title">${isFocus ? '<span class="task-focus-mark">いまやる</span>' : ''}${escapeHtml(task.title)}</span>
-      <span class="task-meta">${meta}</span>
-    </button>
-    ${grip}
+    ${underLeft}${underRight}
+    <div class="task-front">
+      ${action}
+      <button class="task-body" data-edit="${task.id}">
+        <span class="task-title">${isFocus ? '<span class="task-focus-mark">いまやる</span>' : ''}${title}</span>
+        <span class="task-meta">${meta}</span>
+      </button>
+      ${grip}
+    </div>
   </li>`;
+}
+
+// やることをクエスト内の一番上か一番下へ（先頭固定の行はそのまま先頭）。一番上にしたやることがいまやるになる
+function moveTaskToEdge(taskId, edge, now = new Date()) {
+  const task = state.tasks.find((t) => t.id === taskId);
+  if (!task) return;
+  const seq = categorySequence(task.categoryId, now).filter((t) => !isPinned(t, now) && t.id !== taskId);
+  assignOrders(edge === 'top' ? [task, ...seq] : [...seq, task]);
+  saveState();
+}
+
+// 確認してから削除する（編集シートの「削除」と、一覧の行の下の層の「削除」で共用）。削除したら true
+async function confirmDeleteTask(taskId, atEl) {
+  if (!state.tasks.some((t) => t.id === taskId)) return false;
+  if (!(await askConfirm('このやることを削除します。', { ok: '削除する', danger: true }))) return false;
+  const at = atEl ? centerOf(atEl) : null;
+  const before = state.player.xp;
+  deleteTask(taskId);
+  if (at && state.player.xp < before) floatText(at.x, at.y, `-${ADD_XP} XP`, false, true);
+  return true;
 }
 
 function renderQuests() {
@@ -857,8 +892,10 @@ function initQuests() {
   document.getElementById('focus-quests').addEventListener('click', (e) => {
     if (e.target.closest('[data-back-to-list]')) leaveTasksToList(); // 戻るボタンと同じ
   });
+  makeRevealable(document.getElementById('quest-list'), { row: '.task-row' });
   makeSortable(document.getElementById('view-quests'), {
     row: '.task-row',
+    ignore: '.row-under',
     grip: '.drag-grip',
     fixed: '.is-fixed', // 期限切れの行。動かせず、その上にも置けない
     onDrop: (row, ul, info) => {
@@ -897,9 +934,17 @@ function initQuests() {
       });
       return;
     }
+    // 行の下の層のボタン（横にずらすと出る）
+    const top = e.target.closest('[data-task-top]');
+    if (top) { moveTaskToEdge(top.dataset.taskTop, 'top'); render(); settleRow(`#quest-list .task-row[data-id="${top.dataset.taskTop}"]`); return; }
+    const bottom = e.target.closest('[data-task-bottom]');
+    if (bottom) { moveTaskToEdge(bottom.dataset.taskBottom, 'bottom'); render(); settleRow(`#quest-list .task-row[data-id="${bottom.dataset.taskBottom}"]`); return; }
+    const del = e.target.closest('[data-task-delete]');
+    if (del) { confirmDeleteTask(del.dataset.taskDelete, del).then((done) => { if (done) render(); else closeRevealed(); }); return; }
     const edit = e.target.closest('[data-edit]');
     if (edit) {
       if (sessionActive()) { showToast('作業中は編集できません'); return; }
+      closeRevealed();
       openTaskSheet(edit.dataset.edit);
       return;
     }
@@ -963,13 +1008,9 @@ function initQuests() {
   document.getElementById('task-delete').addEventListener('click', async () => {
     const id = form.elements.id.value;
     if (!id) return;
-    if (!(await askConfirm('このやることを削除します。', { ok: '削除する', danger: true }))) return;
-    const at = centerOf(document.getElementById('task-delete'));
-    const before = state.player.xp;
-    deleteTask(id);
+    if (!(await confirmDeleteTask(id, document.getElementById('task-delete')))) return;
     closeTaskSheet();
     render();
-    if (state.player.xp < before) floatText(at.x, at.y, `-${ADD_XP} XP`, false, true);
   });
 
   document.addEventListener('keydown', (e) => {

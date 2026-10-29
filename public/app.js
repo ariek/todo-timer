@@ -440,7 +440,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.29.0';
+const APP_VERSION = 'v0.30.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -581,21 +581,32 @@ function slideOutTasks() {
 
 function initSwipeBack() {
   const quests = slide.quests();
-  let sw = null; // { id, x0, y0, dir: null | 'h' | 'v', active, samples }
+  let sw = null; // { id, x0, y0, dir: null | 'h' | 'v', active, samples, mouse }
+  let suppressClickUntil = 0; // マウスで引いて離した直後の click は、下のボタンに届かせない
 
-  // 最初の動きで横か縦かを決める。少しでも右向きなら横（その間は縦スクロールさせない）
+  // 最初の動きで横か縦かを決める。少しでも右向きなら横（その間は縦スクロールさせない）。
+  // マウスは 6px 動いてから決める（クリックと区別する）
   const decide = (dx, dy) => {
     if (sw.dir) return;
     if (dx === 0 && dy === 0) return;
+    if (sw.mouse && Math.hypot(dx, dy) < 6) return;
     sw.dir = dx > 0 && dx >= Math.abs(dy) ? 'h' : 'v';
   };
 
   quests.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'touch' || sw) return;
+    if (sw) return;
+    const touch = e.pointerType === 'touch';
+    if (!touch && e.button !== 0) return;
     if (sessionActive()) return; // 作業中は戻れない
-    if (e.target.closest('.sheet-backdrop, a, input, textarea, select')) return;
-    sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dir: null, active: false, samples: [] };
+    if (e.target.closest('.sheet-backdrop, a, input, textarea, select, button, .note-btn')) return; // ボタンは押すもの。マウスで引く対象にしない
+    const row = e.target.closest('.task-row');
+    if (row && row.querySelector('.row-under')) return; // 行の横スワイプ（下の層のボタン）を優先。カードや見出しの上で戻れる
+    sw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dir: null, active: false, samples: [], mouse: !touch };
   });
+  // 引いて離した直後の click は無視する
+  quests.addEventListener('click', (e) => {
+    if (Date.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
   // 横と決めた指の動きはブラウザに渡さず、縦スクロールが混ざらないようにする（最初の touchmove から止める必要がある）
   quests.addEventListener('touchmove', (e) => {
     if (!sw || e.touches.length !== 1) return;
@@ -604,13 +615,14 @@ function initSwipeBack() {
     decide(t.clientX - sw.x0, t.clientY - sw.y0);
     if (sw.dir === 'h' && e.cancelable) e.preventDefault();
   }, { passive: false });
-  quests.addEventListener('pointermove', (e) => {
+  window.addEventListener('pointermove', (e) => {
     if (!sw || e.pointerId !== sw.id) return;
     if (isSortableDragging()) { sw = null; return; } // 長押しで行をつかんでいる
     const dx = e.clientX - sw.x0;
     const dy = e.clientY - sw.y0;
     decide(dx, dy);
     if (sw.dir === 'v') { sw = null; return; } // 縦スクロールに任せる
+    if (sw.dir !== 'h') return;
     if (!sw.active) {
       if (dx < 4) return;
       sw.active = true;
@@ -622,10 +634,11 @@ function initSwipeBack() {
   });
   const finish = (e) => {
     if (!sw || (e && e.pointerId !== undefined && e.pointerId !== sw.id)) return;
-    const { active, samples } = sw;
+    const { active, samples, mouse } = sw;
     const dx = e && e.clientX !== undefined ? e.clientX - sw.x0 : 0;
     sw = null;
     if (!active) return;
+    if (mouse) suppressClickUntil = Date.now() + 300;
     // 幅の 35% を超えたら戻る。速く払ったとき（直近 0.1 秒の速さが 0.5px/ms 以上）は短い距離でも戻る
     const now = Date.now();
     const last = samples[samples.length - 1];
@@ -634,8 +647,8 @@ function initSwipeBack() {
     const toList = dx > slide.width() * 0.35 || (speed >= 0.5 && dx > 24);
     slide.settle(toList ? slide.outX() : 0, toList ? () => leaveTasksToList(true) : null);
   };
-  quests.addEventListener('pointerup', finish);
-  quests.addEventListener('pointercancel', finish);
+  window.addEventListener('pointerup', finish);
+  window.addEventListener('pointercancel', finish);
 }
 
 // --- 起動 -------------------------------------------------------------

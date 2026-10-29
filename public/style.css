@@ -336,7 +336,10 @@ button {
   gap: 8px;
 }
 
-.task-row {
+.task-row { position: relative; } /* 表（.task-front）と下の層（.row-under）の入れ物 */
+.task-front {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -346,6 +349,7 @@ button {
   border-radius: 14px 18px 16px 18px / 18px 14px 18px 16px;
   box-shadow: 3px 3px 0 var(--line);
 }
+.task-front.is-settling { transition: transform 0.2s ease-out; }
 /* 行の出入り: 新しく現れた行は下からふわっと入り、消える行はすっと縮む */
 .task-row.is-entering { animation: row-in 0.25s ease-out; }
 @keyframes row-in {
@@ -353,23 +357,23 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 .task-row.is-leaving {
-  height: 0 !important; padding-top: 0; padding-bottom: 0; margin-top: -8px; /* 一覧の隙間の分 */
-  border-width: 0; opacity: 0; overflow: hidden; box-sizing: border-box;
-  transition: height 0.2s ease-in, padding 0.2s ease-in, margin 0.2s ease-in, opacity 0.15s ease-in, border-width 0.2s ease-in;
+  height: 0 !important; margin-top: -8px; /* 一覧の隙間の分 */
+  opacity: 0; overflow: hidden; box-sizing: border-box;
+  transition: height 0.2s ease-in, margin 0.2s ease-in, opacity 0.15s ease-in;
 }
 /* 並べ替えのドロップ: 収まった行が「トンッ」と落ち着く */
-.task-row.is-dropped, .category-row.is-dropped > .category-front { animation: row-settle 0.28s cubic-bezier(0.2, 1.2, 0.4, 1); }
+.task-row.is-dropped > .task-front, .category-row.is-dropped > .category-front { animation: row-settle 0.28s cubic-bezier(0.2, 1.2, 0.4, 1); }
 @keyframes row-settle {
   from { transform: scale(1.03) translate(-2px, -2px); box-shadow: 6px 6px 0 var(--cat-color, var(--line)); }
   to { transform: none; box-shadow: 3px 3px 0 var(--cat-color, var(--line)); }
 }
 
 /* 日付の強調: 期限切れも今日が期限も赤（行の背景と情報行の日付の色） */
-.task-row[data-due="over"], .task-row[data-due="today"] { border-color: var(--ink); background: #fff6f2; }
+.task-row[data-due="over"] > .task-front, .task-row[data-due="today"] > .task-front { border-color: var(--ink); background: #fff6f2; }
 .due-over, .due-today { color: #c85c4a; font-weight: 700; }
 
 /* 一覧の中のいまやる（先頭）。札で示し、影を黄にする */
-.task-row.is-focus { box-shadow: 3px 3px 0 var(--yellow); }
+.task-row.is-focus > .task-front { box-shadow: 3px 3px 0 var(--yellow); }
 .task-focus-mark {
   display: inline-block;
   margin-right: 6px;
@@ -730,7 +734,7 @@ button.task-check:active { transform: scale(0.9); }
 }
 .row-under--left { left: 0; }
 .row-under--right { right: 0; }
-.category-row.is-reveal-left .row-under--left, .category-row.is-reveal-right .row-under--right { visibility: visible; }
+.is-reveal-left > .row-under--left, .is-reveal-right > .row-under--right { visibility: visible; }
 .row-act {
   width: 40px;
   height: 40px;
@@ -808,7 +812,8 @@ button.task-check:active { transform: scale(0.9); }
   box-shadow: 5px 6px 0 var(--line);
   cursor: grabbing;
 }
-.category-row.is-dragging { box-shadow: none; }
+.category-row.is-dragging, .task-row.is-dragging { box-shadow: none; }
+.task-row.is-dragging .task-front { box-shadow: 5px 6px 0 var(--line); }
 .category-row.is-dragging .category-front { box-shadow: 5px 6px 0 var(--line); }
 
 
@@ -1157,7 +1162,7 @@ button.task-check:active { transform: scale(0.9); }
 
 @media (prefers-reduced-motion: reduce) {
   .modal, .clear-card, .lv-gauge.is-gaining, .clear-num.is-boing { animation: none; }
-  .task-row.is-entering, .task-row.is-dropped, .category-row.is-dropped > .category-front, .qt.is-paused .qt-fill, .qt.is-shake, #focus-quests.is-bump, .note-card.is-growing { animation: none; }
+  .task-row.is-entering, .task-row.is-dropped > .task-front, .category-row.is-dropped > .category-front, .qt.is-paused .qt-fill, .qt.is-shake, #focus-quests.is-bump, .note-card.is-growing { animation: none; }
   .quest-details > :not(summary), .task-row.is-leaving { transition: none; }
 }
 
@@ -1402,6 +1407,6 @@ button.task-check:active { transform: scale(0.9); }
 
 /* マウス: 動かせる行（印を持つ行）はそのまま押して動かせる。縦に動かすと並べ替え、クエストの行は横に引くと下の層のボタン */
 @media (hover: hover) {
-  .category-row:has(.drag-grip) .category-front, .task-row:has(.drag-grip) { cursor: grab; }
+  .category-row:has(.drag-grip) .category-front, .task-row:has(.drag-grip) > .task-front { cursor: grab; }
   .category-front .category-body, .task-row .task-body { cursor: pointer; }
 }
