@@ -172,3 +172,94 @@ function makeSortable(container, { row: rowSel, grip: gripSel, fixed: fixedSel =
   }, true);
   container.addEventListener('contextmenu', (e) => { if (pending || drag) e.preventDefault(); });
 }
+
+// --- 行の横スワイプ: 表のカードを指（またはマウス）で横にずらし、下の層（.row-under）のボタンを見せる ---------
+// クエスト一覧とやることの一覧で共用。右へずらすと左の層（.row-under--left）、左へずらすと右の層（.row-under--right）。
+// その側の層がない行はその向きにはずれない。マウスは 6px 動いてから向きを決める（クリックと区別する）。
+// 縦に動いたら並べ替え（sortable）に任せる。開いている行は一度に1つ
+const REVEAL_W = 100; // 下の層のボタン2つぶん
+let openRow = null; // 開いている（ずれたままの）行
+
+function setReveal(row, x, animate) {
+  const front = row.querySelector('.category-front, .task-front');
+  if (!front) return;
+  front.classList.toggle('is-settling', animate);
+  front.style.transform = x ? `translateX(${x}px)` : '';
+  row.classList.toggle('is-reveal-left', x > 0);
+  row.classList.toggle('is-reveal-right', x < 0);
+  row.classList.toggle('is-open', x !== 0);
+}
+
+function closeRevealed() {
+  if (!openRow) return;
+  if (openRow.isConnected) setReveal(openRow, 0, true);
+  openRow = null;
+}
+
+function makeRevealable(container, { row: rowSel, fixed: fixedSel = '.is-fixed' }) {
+  let sw = null; // { row, id, x0, y0, base, dir, x, mouse, minX, maxX }
+  let suppressClickUntil = 0; // 横に引いて離した直後の click は行に届かせない
+  const decide = (dx, dy) => {
+    if (!sw || sw.dir) return;
+    if (dx === 0 && dy === 0) return;
+    if (sw.mouse && Math.hypot(dx, dy) < 6) return;
+    sw.dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+  };
+  container.addEventListener('pointerdown', (e) => {
+    const touch = e.pointerType === 'touch';
+    if (!touch && e.button !== 0) return;
+    const row = e.target.closest(rowSel);
+    if (openRow && row !== openRow) closeRevealed(); // ほかの行に触れたら閉じる
+    if (!row || (fixedSel && row.matches(fixedSel)) || e.target.closest('.row-under')) return;
+    if (e.target.closest('a, input, textarea, select')) return;
+    const hasLeft = !!row.querySelector('.row-under--left');
+    const hasRight = !!row.querySelector('.row-under--right');
+    if (!hasLeft && !hasRight) return;
+    const base = row === openRow ? (row.classList.contains('is-reveal-left') ? REVEAL_W : -REVEAL_W) : 0;
+    sw = { row, id: e.pointerId, x0: e.clientX, y0: e.clientY, base, dir: null, x: base, mouse: !touch, minX: hasRight ? -REVEAL_W : 0, maxX: hasLeft ? REVEAL_W : 0 };
+  });
+  // 横と決めた指の動きはブラウザに渡さない（縦スクロールが混ざらないように）
+  container.addEventListener('touchmove', (e) => {
+    if (!sw || e.touches.length !== 1) return;
+    if (isSortableDragging()) { sw = null; return; }
+    const t = e.touches[0];
+    decide(t.clientX - sw.x0, t.clientY - sw.y0);
+    if (sw.dir === 'h' && e.cancelable) e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('pointermove', (e) => {
+    if (!sw || e.pointerId !== sw.id) return;
+    if (isSortableDragging()) { sw = null; return; } // 長押し（マウスは縦の動き）で行をつかんだ
+    const dx = e.clientX - sw.x0;
+    const dy = e.clientY - sw.y0;
+    decide(dx, dy);
+    if (sw.dir === 'v') { sw = null; return; }
+    if (sw.dir !== 'h') return;
+    let x = sw.base + dx;
+    if (x > sw.maxX) x = sw.maxX + (x - sw.maxX) * 0.25; // 端（層がない側は 0）を越えたら重くなる
+    if (x < sw.minX) x = sw.minX + (x - sw.minX) * 0.25;
+    sw.x = x;
+    setReveal(sw.row, x, false);
+  });
+  const finish = (e) => {
+    if (!sw || (e && e.pointerId !== undefined && e.pointerId !== sw.id)) return;
+    const { row, x, dir, mouse, minX, maxX } = sw;
+    sw = null;
+    if (dir !== 'h') return;
+    if (mouse) suppressClickUntil = Date.now() + 300;
+    let to = 0;
+    if (maxX > 0 && x > REVEAL_W / 2) to = REVEAL_W;
+    else if (minX < 0 && x < -REVEAL_W / 2) to = -REVEAL_W;
+    setReveal(row, to, true);
+    openRow = to ? row : null;
+  };
+  window.addEventListener('pointerup', finish);
+  window.addEventListener('pointercancel', finish);
+  // 横に引いた直後の click は無視。開いている行の表をタップしたら閉じるだけ（やること画面や編集シートは開かない）
+  container.addEventListener('click', (e) => {
+    if (Date.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); return; }
+    const row = e.target.closest(rowSel);
+    if (openRow && row === openRow && !e.target.closest('.row-under')) { e.stopPropagation(); e.preventDefault(); closeRevealed(); }
+  }, true);
+  // 一覧の外に触れたら閉じる
+  document.addEventListener('pointerdown', (e) => { if (openRow && container.contains(openRow) && !container.contains(e.target)) closeRevealed(); });
+}
