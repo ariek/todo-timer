@@ -1482,7 +1482,8 @@ input[type="date"].is-empty:not(:focus)::-webkit-datetime-edit { opacity: 0; }
   display: flex; align-items: center; justify-content: center; aspect-ratio: 1;
   border: 2px solid var(--line); border-radius: 10px 12px 10px 12px / 12px 10px 12px 10px; background: var(--bg); color: var(--ink);
 }
-.icon-choice .icon { width: 22px; height: 22px; --icon-fill-a: var(--cat-color); stroke-width: 2; }
+/* アイコンはボタンの内側の幅の 60%（iPhone 幅で約 28px、PC 幅で約 43px）。ボタンが大きくなる PC でも小さく見えないように */
+.icon-choice .icon { width: 60%; height: auto; aspect-ratio: 1; --icon-fill-a: var(--cat-color); stroke-width: 2; }
 .icon-choice.is-selected { border-color: var(--ink); background: var(--paper); box-shadow: 2px 2px 0 var(--ink); }
 
 /* マウス: 動かせる行（印を持つ行）はそのまま押して動かせる。縦に動かすと並べ替え、クエストの行は横に引くと下の層のボタン */

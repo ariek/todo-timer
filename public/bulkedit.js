@@ -213,7 +213,8 @@ function addBulkEditRow() {
   } else {
     const used = new Set(d.cats.filter((c) => !c.deleted).map((c) => c.color));
     const free = CATEGORY_COLORS.find((c) => !used.has(c.id));
-    d.cats.push({ key, id: null, name: '', color: free ? free.id : DEFAULT_COLOR, icon: DEFAULT_ICON, deleted: false, orig: null });
+    const color = free ? free.id : DEFAULT_COLOR;
+    d.cats.push({ key, id: null, name: '', color, autoColor: color, icon: DEFAULT_ICON, deleted: false, orig: null });
     field = 'name';
   }
   renderBulkEdit();
@@ -302,7 +303,17 @@ function initBulkEdit() {
     const input = e.target.closest('[data-f]');
     const hit = input && rowOf(input);
     if (!hit) return;
-    hit.row[input.dataset.f] = input.value;
+    const f = input.dataset.f;
+    hit.row[f] = input.value;
+    if (bulkEdit.tab === 'cats' && !hit.row.id) {
+      // 新しいクエスト: 自分で色を選ぶまでは、名前の頭2文字が同じクエストの色に合わせる
+      if (f === 'color') hit.row.autoColor = null;
+      if (f === 'name' && hit.row.autoColor) {
+        const others = bulkEdit.cats.filter((c) => c !== hit.row && !c.deleted && c.name.trim());
+        hit.row.color = matchingCategoryColor(hit.row.name, others) || hit.row.autoColor;
+        hit.tr.querySelector('[data-f="color"]').value = hit.row.color;
+      }
+    }
     beSyncRow(hit.tr, hit.row);
     renderBulkEditStatus();
   };

@@ -1,7 +1,7 @@
 // サービスワーカー: アプリ本体をキャッシュしてオフラインでも開けるようにする
 // アプリのファイルを変更したら CACHE_VERSION を上げる（更新通知のきっかけになる）
 
-const CACHE_VERSION = 'v0.31.1';
+const CACHE_VERSION = 'v0.32.0';
 const CACHE_NAME = `todo-timer-${CACHE_VERSION}`;
 const FONT_CACHE = 'todo-timer-fonts';
 
@@ -27,6 +27,10 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
 ];
+
+// ローカルの確認用サーバー（localhost や家庭内 LAN のアドレス）かどうか。
+// そこではキャッシュ優先だと「直したのに1つ前の見た目が出る」（1回目の再読み込みは古いファイル）ので、常に最新を取りに行く
+const IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\]|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(self.location.hostname);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -58,6 +62,20 @@ self.addEventListener('fetch', (event) => {
   // フォント: キャッシュがあればそれを返し、裏で更新する
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     event.respondWith(staleWhileRevalidate(request, FONT_CACHE));
+    return;
+  }
+
+  // ローカルの確認用サーバー: ネットワーク優先（つながらないときだけキャッシュ。オフラインの確認はできる）
+  if (url.origin === self.location.origin && IS_LOCAL) {
+    event.respondWith(
+      fetch(new Request(request, { cache: 'no-cache' })).then((response) => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      }).catch(() => caches.match(request, { ignoreSearch: true })),
+    );
     return;
   }
 
