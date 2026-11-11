@@ -602,6 +602,10 @@ button.task-check:active { transform: scale(0.9); }
   box-sizing: border-box;
 }
 .field input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+/* 空の日付欄は、入力中でなければ中身を出さない。Mac の Safari は空の欄に今日の日付を見本として出すので、
+   日付が入っているように見えてしまう（Chrome の「年/月/日」も同じ扱いで消す。カレンダーの印は残る） */
+input[type="date"].is-empty:not(:focus) { color: transparent; }
+input[type="date"].is-empty:not(:focus)::-webkit-datetime-edit { opacity: 0; }
 
 .seg {
   display: flex;
