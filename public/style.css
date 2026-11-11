@@ -200,6 +200,82 @@ button {
 }
 @media (prefers-reduced-motion: reduce) { .page { transition: none; } }
 
+/* データの一括編集: 設定の上に重なるページ。表は横にも縦にもこの中でスクロールする */
+.page--edit { z-index: 19; } /* 設定(18)より上、シート(20)・確認ダイアログ(45)より下 */
+.edit-bar { flex: none; padding: 10px 16px 0; }
+.edit-bar .seg { max-width: 360px; }
+.edit-bar .seg-item span { flex-direction: row; justify-content: center; gap: 6px; }
+.page-body.edit-body { padding: 10px 16px 16px; overflow: auto; }
+.edit-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px calc(10px + var(--safe-bottom));
+  border-top: 2.5px solid var(--ink);
+  background: var(--bg);
+}
+.edit-status { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-soft); }
+.edit-foot .btn:disabled { opacity: 0.45; box-shadow: none; }
+.edit-add { margin-top: 12px; }
+
+.edit-table { border-collapse: separate; border-spacing: 0; background: var(--paper); border: 2.2px solid var(--ink); }
+.edit-table th {
+  position: sticky; top: 0; z-index: 1; /* スクロールしても見出しを残す */
+  padding: 6px 8px;
+  font-size: 12px; text-align: left; white-space: nowrap;
+  color: var(--ink-soft);
+  background: var(--bg);
+  border-bottom: 2px solid var(--ink);
+}
+.edit-table td { padding: 0; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); vertical-align: middle; }
+.edit-table td:first-child, .edit-table th:first-child { border-left: none; }
+.edit-table tbody tr:last-child td { border-bottom: none; }
+.edit-table input, .edit-table select, .edit-table textarea {
+  display: block;
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 16px; /* 指で操作する端末では、入力時の自動拡大を避ける大きさ */
+  color: var(--ink);
+}
+.edit-table textarea { resize: vertical; line-height: 1.4; }
+.edit-table input[type="date"] { -webkit-appearance: none; appearance: none; }
+.edit-table input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.edit-table input:focus, .edit-table select:focus, .edit-table textarea:focus { outline: 2.2px solid var(--ink); outline-offset: -2px; background: #fffbe8; }
+.edit-table input:disabled, .edit-table select:disabled, .edit-table textarea:disabled { color: var(--ink-soft); opacity: 0.45; }
+.edit-table .edit-ro { padding: 0 8px; font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+.edit-table .edit-preview { padding: 0 2px 0 8px; }
+.edit-table .edit-preview .cat-icon { margin-right: 0; }
+.edit-table .edit-act { padding: 0 6px; }
+.edit-table .edit-empty { padding: 16px; font-size: 13px; color: var(--ink-soft); }
+.edit-del { padding: 4px 10px; font-size: 12px; white-space: nowrap; border: 1.8px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink-soft); }
+.edit-del:disabled { opacity: 0.4; }
+/* 行の状態: 変更あり（黄）、新しい行（緑）、削除する行（赤、打ち消し線） */
+.edit-table tr.is-changed td { background: #fffae6; }
+.edit-table tr.is-new td { background: #eefaf3; }
+.edit-table tr.is-deleted td { background: #fbe9e5; }
+.edit-table tr.is-deleted input, .edit-table tr.is-deleted textarea { text-decoration: line-through; }
+/* 列の幅（やることの表は広いので、狭い画面では横にスクロールする） */
+.edit-table--tasks { min-width: 1040px; width: 100%; }
+.edit-table--tasks th:nth-child(1) { width: 130px; }
+.edit-table--tasks th:nth-child(2) { min-width: 220px; }
+.edit-table--tasks th:nth-child(3) { width: 84px; }
+.edit-table--tasks th:nth-child(4) { width: 110px; }
+.edit-table--tasks th:nth-child(5) { width: 76px; }
+.edit-table--tasks th:nth-child(6) { width: 150px; }
+.edit-table--tasks th:nth-child(7) { min-width: 200px; }
+.edit-table--cats { min-width: 520px; width: 100%; max-width: 760px; }
+.edit-table--cats th:nth-child(1) { width: 36px; }
+.edit-table--cats th:nth-child(3) { width: 110px; }
+.edit-table--cats th:nth-child(4) { width: 120px; }
+@media (hover: hover) { .edit-table input, .edit-table select, .edit-table textarea { font-size: 14px; min-height: 34px; padding: 6px 8px; } }
+
 /* やること画面の右スワイプ: 指について動くやること画面と、その後ろで追いかけてくる一覧 */
 #view-quests { touch-action: pan-y; } /* 縦スクロールはブラウザに任せ、横の動きはこちらで受ける */
 #view-quests.is-swiping { position: relative; z-index: 3; will-change: transform; }

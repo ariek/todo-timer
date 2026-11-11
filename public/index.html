@@ -203,6 +203,12 @@
       </section>
 
       <section class="settings-section">
+        <h2 class="settings-heading">データの一括編集</h2>
+        <p class="settings-help">やることとクエストを表にして、まとめて書き換えられます。</p>
+        <button class="btn" id="bulk-edit-open">データの一括編集</button>
+      </section>
+
+      <section class="settings-section">
         <h2 class="settings-heading">データのエクスポート</h2>
         <p class="settings-help" id="data-summary"></p>
         <div class="btn-row">
@@ -232,6 +238,30 @@
         <button class="btn btn-danger" id="reset-all">すべてのデータを削除</button>
       </section>
     </section>
+    </div>
+  </div>
+
+  <!-- データの一括編集: 設定の上に重なるページ。やることとクエストを表で編集する -->
+  <div class="page page--edit" id="page-bulk-edit" hidden>
+    <header class="header page-hd">
+      <div class="header-inner">
+        <div class="hd-row"><span class="page-title">データの一括編集</span><button class="hd-close" id="bulk-edit-close" aria-label="一括編集を閉じる" title="閉じる"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+      </div>
+    </header>
+    <div class="edit-bar">
+      <div class="seg seg--mode" role="radiogroup" aria-label="編集する表">
+        <label class="seg-item"><input type="radio" name="bulk-edit-tab" value="tasks" checked><span>やること <small id="bulk-edit-count-tasks"></small></span></label>
+        <label class="seg-item"><input type="radio" name="bulk-edit-tab" value="cats"><span>クエスト <small id="bulk-edit-count-cats"></small></span></label>
+      </div>
+    </div>
+    <div class="page-body edit-body">
+      <table class="edit-table" id="bulk-edit-table"></table>
+      <button class="btn edit-add" id="bulk-edit-add">＋ 行を追加</button>
+    </div>
+    <div class="edit-foot">
+      <span class="edit-status" id="bulk-edit-status"></span>
+      <button class="btn" id="bulk-edit-cancel">キャンセル</button>
+      <button class="btn btn-primary" id="bulk-edit-save">保存</button>
     </div>
   </div>
 
@@ -416,6 +446,7 @@
   <script src="sortable.js"></script>
   <script src="settings.js"></script>
   <script src="bulk.js"></script>
+  <script src="bulkedit.js"></script>
   <script src="log.js"></script>
   <script src="effects.js"></script>
   <script src="dialog.js"></script>

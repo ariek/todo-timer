@@ -67,6 +67,7 @@ public/       公開する本体（GitHub Pages に配信される）
   sortable.js   一覧のドラッグ＆ドロップ並べ替え
   settings.js   設定画面
   bulk.js       クエスト・やることの一括追加
+  bulkedit.js   データの一括編集（表形式）
   log.js        記録画面
   effects.js    完了演出
   dialog.js     確認ダイアログ
