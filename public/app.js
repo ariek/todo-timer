@@ -225,7 +225,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === tab));
   // 記録・設定は × のヘッダーごと下から上がって本体に重なり、閉じるときは下へ下がる
   const motion = prev !== tab && !(typeof reducedMotion === 'function' && reducedMotion());
-  document.querySelectorAll('.page').forEach((p) => {
+  document.querySelectorAll('.page[data-page]').forEach((p) => {
     if (p.dataset.page === tab) showPage(p, motion);
     else hidePage(p, motion && p.dataset.page === prev);
   });
@@ -319,6 +319,12 @@ function closePage() {
 
 // 履歴の項目に合わせて画面を出す（戻る・進むの両方）
 function applyHistoryState(s) {
+  if (isBulkEditOpen()) {
+    // 一括編集を開いている間の「戻る」は、編集を閉じるだけ（変更があれば確かめる）。設定画面には留まる
+    history.pushState({ app: true, ...screenState() }, '');
+    requestCloseBulkEdit();
+    return;
+  }
   closeOverlays();
   const target = s.screen === 'log' || s.screen === 'settings' ? s.under : s;
   const toTasks = target && target.screen === 'tasks';
@@ -440,7 +446,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.30.0';
+const APP_VERSION = 'v0.31.0';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -673,6 +679,7 @@ function init() {
   initSwipeBack();
   initQuests();
   initSettings();
+  initBulkEdit();
   initLog();
   initEffects();
   initDialog();
