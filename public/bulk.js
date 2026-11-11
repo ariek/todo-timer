@@ -79,9 +79,12 @@ function parseBulkText(text, categories, tasks, opts = {}) {
     if (found) return { id: found.id, name: found.name };
     let pending = newCategories.find((a) => a.name === name);
     if (!pending) {
+      // 色: 名前の頭2文字が同じクエスト（すでにあるもの、またはこの貼り付けで先に作るもの）があればその色。なければ空いている色
+      const matched = matchingCategoryColor(name, [...sortedCategories(), ...newCategories]);
+      if (matched) usedColors.add(matched);
       pending = name === BULK_DEFAULT_CATEGORY
         ? { name, color: DEFAULT_COLOR, icon: DEFAULT_ICON }
-        : { name, color: pickColor(), icon: DEFAULT_ICON };
+        : { name, color: matched || pickColor(), icon: DEFAULT_ICON };
       newCategories.push(pending);
     }
     return { id: null, name };

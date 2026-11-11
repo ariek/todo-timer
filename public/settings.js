@@ -12,6 +12,17 @@ function nextFreeColor() {
   return free ? free.id : CATEGORY_COLORS[state.categories.length % CATEGORY_COLORS.length].id;
 }
 
+// 新しいクエストの色合わせ: 名前の最初の2文字が、すでにあるクエストの名前の最初の2文字と同じなら、そのクエストの色を返す。
+// （「仕事A」「仕事B」のように頭をそろえた仲間を同じ色にする）。当てはまるものがなければ null。複数あれば並び順で最初のもの。
+// others には { name, color } の並びを渡す
+function matchingCategoryColor(name, others = sortedCategories()) {
+  const head = (str) => Array.from(String(str || '').trim()).slice(0, 2).join('');
+  const h = head(name);
+  if (Array.from(h).length < 2) return null;
+  const hit = others.find((c) => head(c.name) === h);
+  return hit ? hit.color : null;
+}
+
 // --- クエスト（カテゴリー）の操作 -----------------------------------------------------
 
 function sortedCategories() {
@@ -136,6 +147,8 @@ function openCategorySheet(categoryId = null) {
   form.elements.id.value = category ? category.id : '';
   form.elements.name.value = category ? category.name : '';
   form.elements.color.value = category ? category.color : nextFreeColor();
+  // 追加のとき: 自動で決めた色を覚えておく。自分で色を選ぶまでは、名前の頭2文字が同じクエストの色に合わせる
+  categoryAutoColor = category ? null : form.elements.color.value;
   form.elements.icon.value = category ? category.icon : DEFAULT_ICON;
   form.elements.bulk.value = '';
   // 追加のときだけ「ひとつずつ / まとめて」を選べる（前回選んだ方を出す）。編集はひとつずつ
@@ -147,6 +160,17 @@ function openCategorySheet(categoryId = null) {
   updateCategoryFormVisibility();
   showSheet(document.getElementById('category-sheet'));
   setTimeout(() => categoryFormMainInput().focus(), 320); // シートが上がりきってから
+}
+
+// 追加シートで自動で決めた色（null = 編集中、または自分で色を選んだあと。名前に合わせて変えない）
+let categoryAutoColor = null;
+function syncCategoryColorToName() {
+  if (categoryAutoColor === null) return;
+  const form = document.getElementById('category-form');
+  const color = matchingCategoryColor(form.elements.name.value) || categoryAutoColor;
+  if (form.elements.color.value === color) return;
+  form.elements.color.value = color;
+  renderPickers();
 }
 
 // 追加のしかた。'single' = ひとつずつ、'bulk' = まとめて（クエストとやることを1行に1つ）
@@ -216,8 +240,10 @@ function initSettings() {
     const b = e.target.closest('[data-color]');
     if (!b) return;
     form.elements.color.value = b.dataset.color;
+    categoryAutoColor = null; // 自分で選んだ色は、名前を変えてもそのまま
     renderPickers();
   });
+  form.elements.name.addEventListener('input', syncCategoryColorToName);
   document.getElementById('icon-picker').addEventListener('click', (e) => {
     const b = e.target.closest('[data-icon]');
     if (!b) return;
