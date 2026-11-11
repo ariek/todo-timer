@@ -738,6 +738,7 @@ function openTaskSheet(taskId = null) {
   form.elements.repeatType.value = task ? task.repeat.type : 'none';
   form.elements.repeatEvery.value = task && task.repeat.type === 'days' ? task.repeat.every : 3;
   form.elements.deadline.value = task && task.deadline ? dateKey(task.deadline) : '';
+  markEmptyDates(form);
   form.elements.note.value = task ? task.note : '';
   form.elements.bulk.value = '';
   // 追加のときだけ「ひとつずつ / まとめて」を選べる（前回選んだ方を出す）。編集はひとつずつ

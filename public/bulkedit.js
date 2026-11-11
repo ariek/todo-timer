@@ -168,6 +168,7 @@ function renderBulkEdit() {
     table.innerHTML = `<thead><tr><th></th><th>名前</th><th>色</th><th>アイコン</th><th>やること</th><th></th></tr></thead>
       <tbody>${d.cats.map(beCatRowHtml).join('') || '<tr><td class="edit-empty" colspan="6">クエストはまだありません</td></tr>'}</tbody>`;
   }
+  markEmptyDates(table);
   document.getElementById('bulk-edit-count-tasks').textContent = String(d.tasks.filter((t) => !beTaskGone(t)).length);
   document.getElementById('bulk-edit-count-cats').textContent = String(d.cats.filter((c) => !c.deleted).length);
   renderBulkEditStatus();

@@ -146,6 +146,12 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// 空の日付欄に印（is-empty）を付ける。Mac の Safari は空の日付欄に今日の日付を見本として出すので、
+// 入っているように見えないよう、空で入力中でない欄の表示を CSS で消す。値をコードから入れたあとに呼ぶ
+function markEmptyDates(root = document) {
+  root.querySelectorAll('input[type="date"]').forEach((el) => el.classList.toggle('is-empty', !el.value));
+}
+
 // 文中の URL（http / https）をリンクにする。別ウインドウで開く。
 // URL は半角の文字が続く範囲だけ（日本語や全角のかっこが出たらそこで終わり）。末尾の句読点や半角の閉じかっこはリンクに含めない
 function linkifyHtml(str) {
@@ -446,7 +452,7 @@ function measureInsets() {
 
 // --- PWA: サービスワーカーの登録と更新通知 ---------------------------
 
-const APP_VERSION = 'v0.31.0';
+const APP_VERSION = 'v0.31.1';
 let waitingWorker = null;
 
 function registerServiceWorker() {
@@ -691,6 +697,11 @@ function init() {
   if (ui.showTasks) renderQuests();
   switchTab('categories');
   initHistory();
+  // 日付欄: 入力のたびに「空」の印を付け直す
+  ['input', 'change', 'blur'].forEach((type) => document.addEventListener(type, (e) => {
+    if (e.target && e.target.matches && e.target.matches('input[type="date"]')) e.target.classList.toggle('is-empty', !e.target.value);
+  }, true));
+  markEmptyDates();
 
   document.getElementById('app-version').textContent = `やることクエスト ${APP_VERSION}`;
   // iOS はビューポート指定だけではピンチズームを止められないので、ジェスチャー自体を止める
